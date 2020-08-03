@@ -9,6 +9,7 @@ import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.json.JSONObject;
+import org.locationtech.jts.io.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -62,8 +63,33 @@ public class EScontroller {
         return helper.delete("landsat", idList);
     }
 
-    @RequestMapping(value = "/search", method = {RequestMethod.GET, RequestMethod.POST})
-    public Result<SearchResult> search(HttpServletRequest req, @RequestBody(required = false) String requestBody) throws JsonProcessingException {
+//    @RequestMapping(value = "/search", method = {RequestMethod.GET, RequestMethod.POST})
+//    public Result<SearchResult> search(HttpServletRequest req, @RequestBody(required = false) String requestBody) throws JsonProcessingException {
+//        Result<SearchResult> result = new Result<>();
+//        SearchResult searchResult = new SearchResult();
+//        searchResult.setCurpage(1);
+//        searchResult.setPagecount(1);
+//        searchResult.setCurresult(0);
+//        searchResult.setTotal(0);
+//        searchResult.setEntitytotal(0);
+//        searchResult.setTime(0D);
+//        searchResult.setFeatures(Collections.emptyList());
+//        try {
+//            queryService.search();
+////            if (a){
+////                result.status("ok").result(searchResult);
+////            }else {
+////                result.status("no").result(searchResult);
+////            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            result.status("查询失败").result(searchResult);
+//        }
+//        return result;
+//    }
+
+    @RequestMapping(value = "/geoSearch",method = {RequestMethod.GET, RequestMethod.POST})
+    public Result<SearchResult> geoSearch(HttpServletRequest req, @RequestBody(required = false) String requestBody){
         Result<SearchResult> result = new Result<>();
         SearchResult searchResult = new SearchResult();
         searchResult.setCurpage(1);
@@ -74,18 +100,18 @@ public class EScontroller {
         searchResult.setTime(0D);
         searchResult.setFeatures(Collections.emptyList());
         try {
-            queryService.search();
-//            if (a){
-//                result.status("ok").result(searchResult);
-//            }else {
-//                result.status("no").result(searchResult);
-//            }
+          String a =  queryService.geoSearch();
+         if (a == "OK"){
+                result.status("ok").result(searchResult);
+            }else {
+                result.status("no").result(searchResult);
+            }
         } catch (IOException e) {
             e.printStackTrace();
             result.status("查询失败").result(searchResult);
+       } catch (ParseException e) {
+            e.printStackTrace();
         }
-
         return result;
     }
-
 }

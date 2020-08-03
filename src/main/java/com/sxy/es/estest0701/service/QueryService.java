@@ -22,32 +22,8 @@ import java.util.Map;
 
 public interface QueryService {
 
-    GeometryFactory geometryFactory = new GeometryFactory();
-//    WKTReader wktReader = new WKTReader();
-    WKTWriter wktWriter = new WKTWriter();
-//    GeometryJSON geometryJSON = new GeometryJSON();
-
     void search() throws IOException;
-//    boolean search() throws IOException;
 
-    Tuple3<Integer, Envelope, List<Map<String, Object>>> toJson(SearchResponse response, Geometry filter
-            , ShapeRelation relation, List<String> includes, List<String> excludes, boolean hasDistance);
+    SearchResult geoSearch() throws IOException, ParseException;
 
-    SearchResult response2Result(Integer page, Integer pagecap, SearchResponse response, Geometry geomFilter
-            , List<String> excludes, String orderBy, Object defaultValue, boolean numberOrder, boolean asc);
-
-    default boolean satisfy(Geometry filter, Geometry geometry, ShapeRelation relation) {
-        if (relation == null)
-            relation = ShapeRelation.INTERSECTS;
-        switch (relation) {
-            case WITHIN:
-                return filter.within(geometry);
-            case CONTAINS:
-                return filter.contains(geometry);
-            case DISJOINT:
-                return filter.disjoint(geometry);
-            default:
-                return filter.intersects(geometry);
-        }
-    }
 }
