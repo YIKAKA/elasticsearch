@@ -1,20 +1,33 @@
 package com.sxy.es.estest0701.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.sxy.es.estest0701.model.Result;
+import com.sxy.es.estest0701.model.SearchResult;
+import com.sxy.es.estest0701.service.QueryService;
 import com.sxy.es.estest0701.util.RestHighLevelClientHelper;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 
 @RestController
 public class EScontroller {
+
+    @Autowired
+    private QueryService queryService;
+
     RestClientBuilder builder = RestClient.builder(
         new HttpHost("192.168.137.81",9200,"http"),
                     new HttpHost("192.168.137.82",9200,"http"),
@@ -31,12 +44,48 @@ public class EScontroller {
 
     @RequestMapping(value = "/createIndex", method = RequestMethod.POST)
     public Boolean createIndex(@RequestBody(required = false) String requestBody) throws IOException {
-        return helper.createIfNotExist("landsat",3,2);
+        return helper.createIfNotExist("landsat02",3,2);
     }
 
-    @RequestMapping(value = "/insertDoc", method = RequestMethod.POST)
-    public Boolean insertDoc(@RequestBody(required = false) String requestBody) throws IOException {
-        return helper.insertDoc();
+    @RequestMapping(value = "/deleteBulk", method = RequestMethod.POST)
+    public int deleteBulk(@RequestBody(required = false) String requestBody) throws IOException {
+        List<String> idList = new ArrayList<>();
+        idList.add("0");
+        idList.add("1");
+        idList.add("2");
+        idList.add("3");
+        idList.add("4");
+        idList.add("5");
+        idList.add("6");
+        idList.add("7");
+        idList.add("8");
+        return helper.delete("landsat", idList);
+    }
+
+    @RequestMapping(value = "/search", method = {RequestMethod.GET, RequestMethod.POST})
+    public Result<SearchResult> search(HttpServletRequest req, @RequestBody(required = false) String requestBody) throws JsonProcessingException {
+        Result<SearchResult> result = new Result<>();
+        SearchResult searchResult = new SearchResult();
+        searchResult.setCurpage(1);
+        searchResult.setPagecount(1);
+        searchResult.setCurresult(0);
+        searchResult.setTotal(0);
+        searchResult.setEntitytotal(0);
+        searchResult.setTime(0D);
+        searchResult.setFeatures(Collections.emptyList());
+        try {
+            queryService.search();
+//            if (a){
+//                result.status("ok").result(searchResult);
+//            }else {
+//                result.status("no").result(searchResult);
+//            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            result.status("查询失败").result(searchResult);
+        }
+
+        return result;
     }
 
 }

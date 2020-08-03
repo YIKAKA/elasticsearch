@@ -15,6 +15,8 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -154,6 +156,11 @@ public class RestHighLevelClientHelper implements Closeable {
                     builder.field("type","geo_shape");
                 }
                 builder.endObject();
+                builder.startObject("LANDSAT_PRODUCT_ID");
+                {
+                    builder.field("type","text");
+                }
+                builder.endObject();
             }
             builder.endObject();
         }
@@ -198,64 +205,68 @@ public class RestHighLevelClientHelper implements Closeable {
         return client.deleteByQuery(request, RequestOptions.DEFAULT).getDeleted();
     }
 
-    //添加数据
-    public Boolean insertDoc() throws IOException {
-        List<Map<String,Double>> list = readFromCSV(',',"C:\\Users\\admin\\Desktop\\LANDSAT_TM_C1_01.csv");
-        for (int i = 0; i<list.size();i++) {
-            double lowerLeftCornerLongitude = list.get(i).get("lowerLeftCornerLongitude");
-            double lowerLeftCornerLatitude =  list.get(i).get("lowerLeftCornerLatitude");
-            double lowerRightCornerLongitude =  list.get(i).get("lowerRightCornerLongitude");
-            double lowerRightCornerLatitude =  list.get(i).get("lowerRightCornerLatitude");
-            double upperRightCornerLongitude =  list.get(i).get("upperRightCornerLongitude");
-            double upperRightCornerLatitude =  list.get(i).get("upperRightCornerLatitude");
-            double upperLeftCornerLongitude =  list.get(i).get("upperLeftCornerLongitude");
-            double upperLeftCornerLatitude =  list.get(i).get("upperLeftCornerLatitude");
-            String wkt =  "POLYGON (("+lowerLeftCornerLongitude+" "+lowerLeftCornerLatitude+","+lowerRightCornerLongitude+" "+lowerRightCornerLatitude+","+upperRightCornerLongitude+" "+upperRightCornerLatitude+","+upperLeftCornerLongitude+" "+upperLeftCornerLatitude+","+lowerLeftCornerLongitude+" "+lowerLeftCornerLatitude+"))";
+//    //添加数据
+//    public Boolean insertDoc() throws IOException {
+//        List<Map<String,Double>> list = readFromCSV(',',"F:\\es\\LANDSAT_TM_C1.csv\\LANDSAT_TM_C1.csv");
+//        for (int i = 0; i<list.size();i++) {
+//            double lowerLeftCornerLongitude = list.get(i).get("lowerLeftCornerLongitude");
+//            double lowerLeftCornerLatitude =  list.get(i).get("lowerLeftCornerLatitude");
+//            double lowerRightCornerLongitude =  list.get(i).get("lowerRightCornerLongitude");
+//            double lowerRightCornerLatitude =  list.get(i).get("lowerRightCornerLatitude");
+//            double upperRightCornerLongitude =  list.get(i).get("upperRightCornerLongitude");
+//            double upperRightCornerLatitude =  list.get(i).get("upperRightCornerLatitude");
+//            double upperLeftCornerLongitude =  list.get(i).get("upperLeftCornerLongitude");
+//            double upperLeftCornerLatitude =  list.get(i).get("upperLeftCornerLatitude");
+//            String wkt =  "POLYGON (("+lowerLeftCornerLongitude+" "+lowerLeftCornerLatitude+","+lowerRightCornerLongitude+" "+lowerRightCornerLatitude+","+upperRightCornerLongitude+" "+upperRightCornerLatitude+","+upperLeftCornerLongitude+" "+upperLeftCornerLatitude+","+lowerLeftCornerLongitude+" "+lowerLeftCornerLatitude+"))";
+//
+//            XContentBuilder builder = XContentFactory.jsonBuilder();
+//            builder.startObject();
+//            {
+//                builder.field("location",  wkt);
+//            }
+//            builder.endObject();
+//            IndexRequest indexRequest = new IndexRequest("landsat")
+//                    .id(String.valueOf(i)).source(builder);
+//            IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
+//        }
+//        return true;
+//    }
+//
+//
+//    public static<T> List<T> readFromCSV(Character separator, String filePath) {
+//        CsvReader reader = null;
+//        List<T> result = new ArrayList<>();
+//        try {
+//            //如果生产文件乱码，windows下用gbk，linux用UTF-8
+//            reader = new CsvReader(filePath, separator, Charset.forName("GBK"));
+//
+//            // 读取标题
+//            reader.readHeaders();
+//            // 逐条读取记录，直至读完
+//            while (reader.readRecord()) {
+//                Map<String, Double> jsonMap = new HashMap<String,Double>();
+//                jsonMap.put("lowerLeftCornerLongitude", Double.valueOf(reader.get("lowerLeftCornerLongitude")));
+//                jsonMap.put("lowerLeftCornerLatitude", Double.valueOf(reader.get("lowerLeftCornerLatitude")));
+//                jsonMap.put("lowerRightCornerLongitude", Double.valueOf(reader.get("lowerRightCornerLongitude")));
+//                jsonMap.put("lowerRightCornerLatitude", Double.valueOf(reader.get("lowerRightCornerLatitude")));
+//                jsonMap.put("upperRightCornerLongitude", Double.valueOf(reader.get("upperRightCornerLongitude")));
+//                jsonMap.put("upperRightCornerLatitude", Double.valueOf(reader.get("upperRightCornerLatitude")));
+//                jsonMap.put("upperLeftCornerLongitude", Double.valueOf(reader.get("upperLeftCornerLongitude")));
+//                jsonMap.put("upperLeftCornerLatitude", Double.valueOf(reader.get("upperLeftCornerLatitude")));
+//                result.add((T) jsonMap);
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        } finally {
+//            if (null != reader) {
+//                reader.close();
+//            }
+//        }
+//        return result;
+//    }
 
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            builder.startObject();
-            {
-                builder.field("location",  wkt);
-            }
-            builder.endObject();
-            IndexRequest indexRequest = new IndexRequest("landsat")
-                    .id(String.valueOf(i)).source(builder);
-            IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
-        }
-        return true;
-    }
-
-
-    public static<T> List<T> readFromCSV(Character separator, String filePath) {
-        CsvReader reader = null;
-        List<T> result = new ArrayList<>();
-        try {
-            //如果生产文件乱码，windows下用gbk，linux用UTF-8
-            reader = new CsvReader(filePath, separator, Charset.forName("GBK"));
-
-            // 读取标题
-            reader.readHeaders();
-            // 逐条读取记录，直至读完
-            while (reader.readRecord()) {
-                Map<String, Double> jsonMap = new HashMap<String,Double>();
-                jsonMap.put("lowerLeftCornerLongitude", Double.valueOf(reader.get("lowerLeftCornerLongitude")));
-                jsonMap.put("lowerLeftCornerLatitude", Double.valueOf(reader.get("lowerLeftCornerLatitude")));
-                jsonMap.put("lowerRightCornerLongitude", Double.valueOf(reader.get("lowerRightCornerLongitude")));
-                jsonMap.put("lowerRightCornerLatitude", Double.valueOf(reader.get("lowerRightCornerLatitude")));
-                jsonMap.put("upperRightCornerLongitude", Double.valueOf(reader.get("lowerLeftCornerLongitude")));
-                jsonMap.put("upperRightCornerLatitude", Double.valueOf(reader.get("upperRightCornerLatitude")));
-                jsonMap.put("upperLeftCornerLongitude", Double.valueOf(reader.get("upperLeftCornerLongitude")));
-                jsonMap.put("upperLeftCornerLatitude", Double.valueOf(reader.get("upperLeftCornerLatitude")));
-                result.add((T) jsonMap);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (null != reader) {
-                reader.close();
-            }
-        }
-        return result;
+    public SearchResponse search(SearchRequest request) throws IOException {
+        return client.search(request, RequestOptions.DEFAULT);
     }
 
 }

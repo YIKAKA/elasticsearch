@@ -15,17 +15,41 @@
     <description>Demo project for Spring Boot</description>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.11</java.version>
         <elasticsearch.version>7.8.0</elasticsearch.version>
+        <geotools.version>21.0</geotools.version>
     </properties>
 
     <repositories>
+        <!--        <repository>-->
+        <!--            <id>elastic-lucene-snapshots</id>-->
+        <!--            <name>Elastic Lucene Snapshots</name>-->
+        <!--            <url>http://s3.amazonaws.com/download.elasticsearch.org/lucenesnapshots/00142c9</url>-->
+        <!--            <releases><enabled>true</enabled></releases>-->
+        <!--            <snapshots><enabled>false</enabled></snapshots>-->
+        <!--        </repository>-->
         <repository>
-            <id>elastic-lucene-snapshots</id>
-            <name>Elastic Lucene Snapshots</name>
-            <url>http://s3.amazonaws.com/download.elasticsearch.org/lucenesnapshots/00142c9</url>
-            <releases><enabled>true</enabled></releases>
-            <snapshots><enabled>false</enabled></snapshots>
+            <id>osgeo</id>
+            <name>OSGeo Release Repository</name>
+            <url>https://repo.osgeo.org/repository/release/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <id>osgeo-snapshot</id>
+            <name>OSGeo Snapshot Repository</name>
+            <url>https://repo.osgeo.org/repository/snapshot/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
         </repository>
     </repositories>
 
@@ -52,6 +76,24 @@
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
             <version>7.8.0</version>
         </dependency>
+<!--        the geo_shape type uses Spatial4J and JTS,-->
+        <dependency>
+            <groupId>org.locationtech.spatial4j</groupId>
+            <artifactId>spatial4j</artifactId>
+            <version>0.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.locationtech.jts</groupId>
+            <artifactId>jts-core</artifactId>
+            <version>1.15.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>xerces</groupId>
+                    <artifactId>xercesImpl</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <!--日志-->
         <dependency>
@@ -65,20 +107,75 @@
             <version>2.11.1</version>
         </dependency>
 
-<!--        读写CSV-->
+        <!--        读写CSV-->
         <dependency>
             <groupId>net.sourceforge.javacsv</groupId>
             <artifactId>javacsv</artifactId>
             <version>2.0</version>
         </dependency>
 
-<!--        JSONObject-->
+        <!--        JSONObject-->
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20180813</version>
         </dependency>
 
+        <!--        spark-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.elasticsearch</groupId>-->
+        <!--            <artifactId>elasticsearch-hadoop</artifactId>-->
+        <!--            <version>7.8.0</version>-->
+        <!--        </dependency>-->
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch-spark-20_2.11</artifactId>
+            <version>7.8.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.11</artifactId>
+            <version>1.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.1</version>
+        </dependency>
+        <dependency>                
+            <groupId>com.databricks</groupId>                
+            <artifactId>spark-csv_2.11</artifactId>                
+            <version>1.5.0</version>
+        </dependency>
+        <!--lombok-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!--        geotools-->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-shapefile</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-swing</artifactId>
+            <version>${geotools.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-geojson</artifactId>
+            <version>19.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -87,14 +184,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-compiler-plugin</artifactId>-->
-<!--                <configuration>-->
-<!--                    <source>14</source>-->
-<!--                    <target>14</target>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
         </plugins>
     </build>
 

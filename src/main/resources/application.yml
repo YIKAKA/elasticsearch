@@ -2,3 +2,12 @@ server:
   port: 13000
   servlet:
     context-path: /es
+
+settings:
+  esMinScore: 1.0
+  cpuCoreSize: 8
+  maxTaskPoolSize: 20
+  taskQueueCapacity: 20
+  keepAliveSeconds: 60
+  es-fetch-factor: 0.2 # es查询结果集打分阈值，仅返回maxScore * esFetchFactor以上的结果
+  geom-dist-tolerance: 0.0002
