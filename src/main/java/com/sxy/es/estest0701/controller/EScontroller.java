@@ -90,27 +90,32 @@ public class EScontroller {
 
     @RequestMapping(value = "/geoSearch",method = {RequestMethod.GET, RequestMethod.POST})
     public Result<SearchResult> geoSearch(HttpServletRequest req, @RequestBody(required = false) String requestBody){
+        String area = req.getParameter("area");
+        String relation = req.getParameter("relation");
         Result<SearchResult> result = new Result<>();
-        SearchResult searchResult = new SearchResult();
-        searchResult.setCurpage(1);
-        searchResult.setPagecount(1);
-        searchResult.setCurresult(0);
-        searchResult.setTotal(0);
-        searchResult.setEntitytotal(0);
-        searchResult.setTime(0D);
-        searchResult.setFeatures(Collections.emptyList());
+        SearchResult a ;
         try {
-          String a =  queryService.geoSearch();
-         if (a == "OK"){
-                result.status("ok").result(searchResult);
-            }else {
-                result.status("no").result(searchResult);
-            }
+            a = queryService.geoSearch(area,relation);
+            result.status("ok").result(a);
         } catch (IOException e) {
             e.printStackTrace();
-            result.status("查询失败").result(searchResult);
-       } catch (ParseException e) {
+        } catch (ParseException e) {
             e.printStackTrace();
+            result.status("error").msg(e.getMessage());
+        }
+        return result;
+    }
+
+    @RequestMapping(value = "/geoSearchByPreindexed",method = {RequestMethod.GET, RequestMethod.POST})
+    public Result<SearchResult> geoSearchByPreindexed(HttpServletRequest req, @RequestBody(required = false) String requestBody){
+        Result<SearchResult> result = new Result<>();
+        SearchResult a ;
+        try {
+            a = queryService.geoSearchByPreindexed();
+            result.status("ok").result(a);
+        } catch (IOException e) {
+            e.printStackTrace();
+            result.status("error").msg(e.getMessage());
         }
         return result;
     }

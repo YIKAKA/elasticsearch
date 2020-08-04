@@ -18,9 +18,8 @@ public class SearchResult {
     private Integer curpage;
     private Integer pagecount;
     private Number curresult;
-    private Number total;
+    private Long total;
     private Double time;
-    private Integer entitytotal;
     private String bound;
     private String cluster;
     private List<Map<String, Object>> features;
