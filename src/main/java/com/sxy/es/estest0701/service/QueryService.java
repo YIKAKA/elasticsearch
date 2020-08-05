@@ -24,8 +24,8 @@ public interface QueryService {
 
     void search() throws IOException;
 
-    SearchResult geoSearch(String wkt,String relation) throws IOException, ParseException;
+    SearchResult geoSearch(String wkt,String relation,int page, int pagecap) throws IOException, ParseException;
 
-    SearchResult geoSearchByPreindexed() throws IOException;
+    SearchResult geoSearchByPreindexed(String relation,int page, int pagecap) throws IOException;
 
 }

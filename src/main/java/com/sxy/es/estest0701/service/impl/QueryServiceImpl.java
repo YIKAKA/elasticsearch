@@ -86,10 +86,12 @@ public class QueryServiceImpl implements QueryService {
         System.out.println(searchResponse.getTook().getSecondsFrac());
     }
 
-    public SearchResult geoSearch(String wkt,String relation) throws IOException, ParseException {
+    public SearchResult geoSearch(String wkt,String relation,int page, int pagecap) throws IOException, ParseException {
         //restricts the request to an index
         SearchRequest searchRequest = new SearchRequest("landsat02");
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        //page页数，pagecap每页个数
+        searchSourceBuilder.from((page - 1) * pagecap).size(pagecap < 200 ? 200 : pagecap);
 //        String wkt =  "POLYGON((-45 45, -45 -45, 45 -45, 45 45,-45 45))";
         //Utility class to create search queries.
         WKTReader wktReader = new WKTReader();
@@ -106,7 +108,11 @@ public class QueryServiceImpl implements QueryService {
             default:
                 geoQuery.relation(ShapeRelation.INTERSECTS);
         }
-        searchSourceBuilder.query(geoQuery);
+
+        BoolQueryBuilder query = QueryBuilders.boolQuery();
+        query.filter(geoQuery);
+
+        searchSourceBuilder.query(query);
         searchRequest.source(searchSourceBuilder);
         SearchResponse searchResponse = helper.search(searchRequest);
         SearchHits hits = searchResponse.getHits();
@@ -167,18 +173,28 @@ public class QueryServiceImpl implements QueryService {
         return searchResult;
     }
 
-    public SearchResult geoSearchByPreindexed() throws IOException {
+    public SearchResult geoSearchByPreindexed(String relation,int page, int pagecap) throws IOException {
         //restricts the request to an index
         SearchRequest searchRequest = new SearchRequest("landsat02");
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.from((page - 1) * pagecap).size(pagecap < 200 ? 200 : pagecap);
 
-        GeoShapeQueryBuilder qb = QueryBuilders.geoShapeQuery("location","deu");
-        qb.relation(ShapeRelation.INTERSECTS);
-        qb.indexedShapeIndex("shapes");
-        qb.indexedShapePath("location");
+        GeoShapeQueryBuilder geoQuery = QueryBuilders.geoShapeQuery("location","deu");
+        switch (relation) {
+            case "WITHIN":
+                geoQuery.relation(ShapeRelation.WITHIN);
+            case "CONTAINS":
+                geoQuery.relation(ShapeRelation.CONTAINS);
+            case "DISJOINT":
+                geoQuery.relation(ShapeRelation.DISJOINT);
+            default:
+                geoQuery.relation(ShapeRelation.INTERSECTS);
+        }
+        geoQuery.indexedShapeIndex("shapes");
+        geoQuery.indexedShapePath("location");
 
         BoolQueryBuilder query = QueryBuilders.boolQuery();
-        query.filter(qb);
+        query.filter(geoQuery);
 
         searchSourceBuilder.query(query);
 

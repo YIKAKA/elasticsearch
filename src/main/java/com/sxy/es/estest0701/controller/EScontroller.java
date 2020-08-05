@@ -92,10 +92,12 @@ public class EScontroller {
     public Result<SearchResult> geoSearch(HttpServletRequest req, @RequestBody(required = false) String requestBody){
         String area = req.getParameter("area");
         String relation = req.getParameter("relation");
+        String page = req.getParameter("page");
+        String pagecap = req.getParameter("pagecap");
         Result<SearchResult> result = new Result<>();
         SearchResult a ;
         try {
-            a = queryService.geoSearch(area,relation);
+            a = queryService.geoSearch(area,relation, Integer.parseInt(page), Integer.parseInt(pagecap));
             result.status("ok").result(a);
         } catch (IOException e) {
             e.printStackTrace();
@@ -108,10 +110,13 @@ public class EScontroller {
 
     @RequestMapping(value = "/geoSearchByPreindexed",method = {RequestMethod.GET, RequestMethod.POST})
     public Result<SearchResult> geoSearchByPreindexed(HttpServletRequest req, @RequestBody(required = false) String requestBody){
+        String relation = req.getParameter("relation");
+        String page = req.getParameter("page");
+        String pagecap = req.getParameter("pagecap");
         Result<SearchResult> result = new Result<>();
         SearchResult a ;
         try {
-            a = queryService.geoSearchByPreindexed();
+            a = queryService.geoSearchByPreindexed(relation, Integer.parseInt(page), Integer.parseInt(pagecap));
             result.status("ok").result(a);
         } catch (IOException e) {
             e.printStackTrace();
