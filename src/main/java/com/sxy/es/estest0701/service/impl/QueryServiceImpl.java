@@ -15,6 +15,7 @@ import org.elasticsearch.common.geo.builders.CoordinatesBuilder;
 import org.elasticsearch.common.geo.builders.PolygonBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.GeoShapeQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.rest.RestStatus;
@@ -170,13 +171,16 @@ public class QueryServiceImpl implements QueryService {
         //restricts the request to an index
         SearchRequest searchRequest = new SearchRequest("landsat02");
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
         GeoShapeQueryBuilder qb = QueryBuilders.geoShapeQuery("location","deu");
         qb.relation(ShapeRelation.INTERSECTS);
         qb.indexedShapeIndex("shapes");
         qb.indexedShapePath("location");
 
+        BoolQueryBuilder query = QueryBuilders.boolQuery();
+        query.filter(qb);
 
-        searchSourceBuilder.query(qb);
+        searchSourceBuilder.query(query);
 
         searchRequest.source(searchSourceBuilder);
 
