@@ -28,4 +28,7 @@ public interface QueryService {
 
     SearchResult geoSearchByPreindexed(String relation,int page, int pagecap) throws IOException;
 
+    SearchResult scrollSearchByPreindexed(String relation) throws IOException;
+
+    SearchResult searchAfterByPreindexed(String relation,int page) throws  IOException;
 }

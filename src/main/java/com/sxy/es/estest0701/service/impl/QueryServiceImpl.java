@@ -6,8 +6,7 @@ import com.sxy.es.estest0701.util.RestHighLevelClientHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.apache.lucene.search.TotalHits;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.common.geo.ShapeRelation;
@@ -19,10 +18,13 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.GeoShapeQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
@@ -31,6 +33,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -38,12 +41,12 @@ import java.util.Map;
 @Service
 public class QueryServiceImpl implements QueryService {
 
-    RestClientBuilder builder = RestClient.builder(
+    static RestClientBuilder builder = RestClient.builder(
             new HttpHost("192.168.137.81",9200,"http"),
             new HttpHost("192.168.137.82",9200,"http"),
             new HttpHost("192.168.137.83",9200,"http")
     );
-    RestHighLevelClientHelper helper = new RestHighLevelClientHelper(builder);
+    static RestHighLevelClientHelper helper = new RestHighLevelClientHelper(builder);
 
     @Autowired
     public void search() throws IOException {
@@ -113,6 +116,7 @@ public class QueryServiceImpl implements QueryService {
         query.filter(geoQuery);
 
         searchSourceBuilder.query(query);
+        searchSourceBuilder.trackTotalHits(true);
         searchRequest.source(searchSourceBuilder);
         SearchResponse searchResponse = helper.search(searchRequest);
         SearchHits hits = searchResponse.getHits();
@@ -164,7 +168,7 @@ public class QueryServiceImpl implements QueryService {
         SearchResult searchResult = new SearchResult();
         searchResult.setCurpage(0);
         searchResult.setPagecount(0);
-        searchResult.setCurresult(searchResponse.getHits().getHits().length);
+        searchResult.setCurresult(searchResponse.getHits().getHits().length);//当前请求可以返回的 文件的 总数
         searchResult.setTotal(searchResponse.getHits().getTotalHits().value);
         searchResult.setTime(searchResponse.getTook().getSecondsFrac());
         searchResult.setCluster("landsat");
@@ -197,6 +201,7 @@ public class QueryServiceImpl implements QueryService {
         query.filter(geoQuery);
 
         searchSourceBuilder.query(query);
+        searchSourceBuilder.trackTotalHits(true);
 
         searchRequest.source(searchSourceBuilder);
 
@@ -218,5 +223,143 @@ public class QueryServiceImpl implements QueryService {
         searchResult.setBound("");
         searchResult.setFeatures(records);
         return searchResult;
+    }
+
+    // the scroll api can be used to retrieve a large number of results from a search request
+    public SearchResult scrollSearchByPreindexed(String relation) throws IOException {
+        //************** initialize the search scroll context
+        final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
+        SearchRequest searchRequest = new SearchRequest("landsat02");
+        searchRequest.scroll(scroll);//set the scroll interval
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+        GeoShapeQueryBuilder geoQuery = QueryBuilders.geoShapeQuery("location","deu");
+        switch (relation) {
+            case "WITHIN":
+                geoQuery.relation(ShapeRelation.WITHIN);
+            case "CONTAINS":
+                geoQuery.relation(ShapeRelation.CONTAINS);
+            case "DISJOINT":
+                geoQuery.relation(ShapeRelation.DISJOINT);
+            default:
+                geoQuery.relation(ShapeRelation.INTERSECTS);
+        }
+        geoQuery.indexedShapeIndex("shapes");
+        geoQuery.indexedShapePath("location");
+
+        BoolQueryBuilder query = QueryBuilders.boolQuery();
+        query.filter(geoQuery);
+        searchSourceBuilder.query(query);
+        searchSourceBuilder.size(10000);
+        searchSourceBuilder.trackTotalHits(true);
+        searchRequest.source(searchSourceBuilder);
+        long total  = 0;
+        double time  = 0;
+        SearchResponse searchResponse = helper.search(searchRequest);
+        total = total + searchResponse.getHits().getTotalHits().value;
+        time = time + searchResponse.getTook().getSecondsFrac();
+        String scrollId = searchResponse.getScrollId();
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
+        List<Map<String, Object>> records = new ArrayList<>();
+
+        while (searchHits != null && searchHits.length > 0) {
+            for (SearchHit hit : searchHits) {
+                Map<String, Object> item = hit.getSourceAsMap();//结果取成MAP
+                records.add(item);//添加到结果集
+            }
+            SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
+            scrollRequest.scroll(scroll);
+            searchResponse = helper.scroll(scrollRequest);
+            scrollId = searchResponse.getScrollId();
+            searchHits = searchResponse.getHits().getHits();
+            time = time + searchResponse.getTook().getSecondsFrac();
+        }
+
+        ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+        clearScrollRequest.addScrollId(scrollId);
+        ClearScrollResponse clearScrollResponse = helper.clearScroll(clearScrollRequest);
+        boolean succeeded = clearScrollResponse.isSucceeded();
+        System.out.println("clearscrollresponse"+succeeded);
+        SearchResult searchResult = new SearchResult();
+        searchResult.setCurpage(0);
+        searchResult.setPagecount(0);
+        searchResult.setCurresult(searchResponse.getHits().getHits().length);
+        searchResult.setTotal(total);
+        searchResult.setTime(time);
+        searchResult.setCluster("landsat");
+        searchResult.setBound("");
+        searchResult.setFeatures(records);
+        return searchResult;
+    }
+
+    //search_after
+    public SearchResult searchAfterByPreindexed(String relation,int page) throws  IOException {
+        SearchResult searchResult = new SearchResult();
+        Object[] objects = new Object[]{"start"};
+        List<Map<String, Object>> records = new ArrayList<>();
+        int i = 0;
+        long total = 0;
+        long current = 0;
+        double time = 0;
+        while (i < page) {
+            SearchResponse  response  = searchAfter(relation,objects);
+            SearchHit[] hits = response.getHits().getHits();
+            total = response.getHits().getTotalHits().value;
+            current = response.getHits().getHits().length;
+            time = time + response.getTook().getSecondsFrac();
+            //最后一个元素
+            objects = hits[hits.length-1].getSortValues();
+            for (SearchHit hit : hits) {
+                records.add(hit.getSourceAsMap());
+            }
+            i++;
+        }
+
+        searchResult.setCurpage(0);
+        searchResult.setPagecount(0);
+        searchResult.setCurresult(current);
+        searchResult.setTotal(total);
+        searchResult.setTime(time);
+        searchResult.setCluster("landsat");
+        searchResult.setBound("");
+        searchResult.setFeatures(records);
+        return searchResult;
+
+    }
+
+    public static SearchResponse searchAfter(String relation, Object[] objects) throws IOException {
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+
+        GeoShapeQueryBuilder geoQuery = QueryBuilders.geoShapeQuery("location","deu");
+        switch (relation) {
+            case "WITHIN":
+                geoQuery.relation(ShapeRelation.WITHIN);
+            case "CONTAINS":
+                geoQuery.relation(ShapeRelation.CONTAINS);
+            case "DISJOINT":
+                geoQuery.relation(ShapeRelation.DISJOINT);
+            default:
+                geoQuery.relation(ShapeRelation.INTERSECTS);
+        }
+        geoQuery.indexedShapeIndex("shapes");
+        geoQuery.indexedShapePath("location");
+
+        BoolQueryBuilder query = QueryBuilders.boolQuery();
+        query.filter(geoQuery);
+
+        sourceBuilder.query(query);
+        sourceBuilder.size(1000);
+        sourceBuilder.sort("_id", SortOrder.DESC);
+        //不是第一个
+        if(!objects[0].toString().equals("start")) {
+            sourceBuilder.searchAfter(objects);
+        }
+        sourceBuilder.trackTotalHits(true);
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.indices("landsat02");
+        searchRequest.source(sourceBuilder);
+        SearchResponse response = helper.search(searchRequest);
+//        SearchHit[] hits = response.getHits().getHits();
+        return response;
     }
 }

@@ -1,6 +1,7 @@
 package com.sxy.es.estest0701.util;
 
 import com.csvreader.CsvReader;
+import com.google.inject.internal.util.$FinalizableWeakReference;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -8,6 +9,7 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -15,13 +17,14 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.*;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -144,6 +147,7 @@ public class RestHighLevelClientHelper implements Closeable {
 //                .endObject()
                 .field("number_of_shards", shards)
                 .field("number_of_replicas", replicas)
+                .field("max_result_window",10000)
                 .endObject();
         CreateIndexRequest request = new CreateIndexRequest(indice).settings(settings);
         XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -269,4 +273,32 @@ public class RestHighLevelClientHelper implements Closeable {
         return client.search(request, RequestOptions.DEFAULT);
     }
 
+    public SearchResponse scroll(SearchScrollRequest request) throws IOException {
+        return client.scroll(request, RequestOptions.DEFAULT);
+    }
+    public ClearScrollResponse clearScroll(ClearScrollRequest clearScrollRequest) throws IOException {
+        return client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
+    }
+    //Update Indices Settings API
+    public boolean updateSettings(){
+        boolean acknowledged;
+        //可以针对单个，多个，全部index设置
+        UpdateSettingsRequest request = new UpdateSettingsRequest("landsat02");
+        String settingKey = "index.max_result_window";
+        int settingValue = 100000000;
+        Settings settings =
+                Settings.builder()
+                .put(settingKey, settingValue)
+                .build();
+        request.settings(settings);
+        try {
+
+            AcknowledgedResponse updateSettingsResponse = client.indices().putSettings(request, RequestOptions.DEFAULT);
+            acknowledged = updateSettingsResponse.isAcknowledged();
+        } catch (IOException e) {
+            e.printStackTrace();
+            acknowledged = false;
+        }
+        return acknowledged;
+    }
 }

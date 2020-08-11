@@ -33,8 +33,7 @@ public class EScontroller {
         new HttpHost("192.168.137.81",9200,"http"),
                     new HttpHost("192.168.137.82",9200,"http"),
                     new HttpHost("192.168.137.83",9200,"http")
-            );
-    RestHighLevelClientHelper helper = new RestHighLevelClientHelper(builder);
+            );    RestHighLevelClientHelper helper = new RestHighLevelClientHelper(builder);
 
     @RequestMapping(value = "/deleteIndex", method = RequestMethod.POST)
     public Boolean deleteIndex(@RequestBody(required = false) String requestBody) throws IOException {
@@ -61,6 +60,11 @@ public class EScontroller {
         idList.add("7");
         idList.add("8");
         return helper.delete("landsat", idList);
+    }
+
+    @RequestMapping(value = "/updateSettings", method = RequestMethod.POST)
+    public boolean updateSettings(){
+        return helper.updateSettings();
     }
 
 //    @RequestMapping(value = "/search", method = {RequestMethod.GET, RequestMethod.POST})
@@ -117,6 +121,37 @@ public class EScontroller {
         SearchResult a ;
         try {
             a = queryService.geoSearchByPreindexed(relation, Integer.parseInt(page), Integer.parseInt(pagecap));
+            result.status("ok").result(a);
+        } catch (IOException e) {
+            e.printStackTrace();
+            result.status("error").msg(e.getMessage());
+        }
+        return result;
+    }
+
+    @RequestMapping(value = "/scrollSearchByPreindexed",method = {RequestMethod.GET, RequestMethod.POST})
+    public Result<SearchResult> scrollSearchByPreindexed(HttpServletRequest req, @RequestBody(required = false) String requestBody){
+        String relation = req.getParameter("relation");
+        Result<SearchResult> result = new Result<>();
+        SearchResult a ;
+        try {
+            a = queryService.scrollSearchByPreindexed(relation);
+            result.status("ok").result(a);
+        } catch (IOException e) {
+            e.printStackTrace();
+            result.status("error").msg(e.getMessage());
+        }
+        return result;
+    }
+
+
+    @RequestMapping(value = "/scrollSearchByPreindexed",method = {RequestMethod.GET, RequestMethod.POST})
+    public Result<SearchResult> scrollSearchByPreindexed(HttpServletRequest req, @RequestBody(required = false) String requestBody){
+        String relation = req.getParameter("relation");
+        Result<SearchResult> result = new Result<>();
+        SearchResult a ;
+        try {
+            a = queryService.scrollSearchByPreindexed(relation);
             result.status("ok").result(a);
         } catch (IOException e) {
             e.printStackTrace();
