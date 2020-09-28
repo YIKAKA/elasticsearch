@@ -26,11 +26,11 @@ public class SparkHelper {
         conf.setMaster("local");
         conf.setAppName("CSVToES");
         conf.set("es.index.auto.create", "true");
-        conf.set("es.nodes","192.168.137.81,192.168.137.82,192.168.137.83");
+        conf.set("es.nodes","192.168.10.135");
         conf.set("es.port","9200");
         SparkContext sc = new SparkContext(conf);
 
-        RDD<String> inputRDD = TextFile.withCharset(sc,"F:\\es\\LANDSAT_TM_C1.csv\\LANDSAT_TM_C1.csv","UTF-8");
+        RDD<String> inputRDD = TextFile.withCharset(sc,"E:\\xm\\es20200720\\LANDSAT_TM_C1.csv\\LANDSAT_TM_C1.csv","UTF-8");
 
         String header = inputRDD.first();
 //        String header = "LANDSAT_PRODUCT_ID,upperRightCornerLatitude,lowerLeftCornerLatitude,upperRightCornerLongitude,lowerRightCornerLongitude,lowerRightCornerLatitude,upperLeftCornerLongitude,lowerLeftCornerLongitude,upperLeftCornerLatitude";
@@ -89,7 +89,7 @@ public class SparkHelper {
             }
         });
         //写入到索引
-        EsSpark.saveToEs(rdd.rdd(), "landsat02/_doc");
+        EsSpark.saveToEs(rdd.rdd(), "landsat/_doc");
 
 //        return 0;
     }

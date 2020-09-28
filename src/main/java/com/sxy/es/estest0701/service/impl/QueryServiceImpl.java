@@ -42,9 +42,7 @@ import java.util.Map;
 public class QueryServiceImpl implements QueryService {
 
     static RestClientBuilder builder = RestClient.builder(
-            new HttpHost("192.168.137.81",9200,"http"),
-            new HttpHost("192.168.137.82",9200,"http"),
-            new HttpHost("192.168.137.83",9200,"http")
+            new HttpHost("192.168.10.135",9200,"http")
     );
     static RestHighLevelClientHelper helper = new RestHighLevelClientHelper(builder);
 
@@ -127,42 +125,42 @@ public class QueryServiceImpl implements QueryService {
         for (SearchHit hit : hits) {
             Map<String, Object> item = hit.getSourceAsMap();//结果取成MAP
             //****以下的代码是对map结果的处理，把经纬度单独拿出来，后续按照需求再选择是否需要。****/
-//            //处理每一条记录
-//            int priority = (int) item.getOrDefault(Constant.PRIORITY, 0);//JDK8检查一个map中匹配提供键的值是否找到，没找到匹配项就使用一个默认值
-//            item.put("_score", hit.getScore() - priority * 0.42f);//priority是index的优先权
-////            //如果包含了geo_point
-//            if (item.containsKey(Constant.ES_POINT)) {
-//                Map<String, Object> thePoint = (Map<String, Object>) item.remove(Constant.ES_POINT);
-//                if (thePoint != null) {
-//                    double lng = (double) thePoint.get(Constant.LON);
-//                    double lat = (double) thePoint.get(Constant.LAT);
-//                    item.put(Constant.LNG, BigDecimal.valueOf(lng).setScale(6, RoundingMode.DOWN).doubleValue());
-//                    item.put(Constant.LAT, BigDecimal.valueOf(lat).setScale(6, RoundingMode.DOWN).doubleValue());
-//                }
-//            }
-////            //如果包含了geo_shape
-//            if (item.containsKey(Constant.ES_SHAPE)) {
-//                try {
-//                    Map<String, Object> theShape = (Map<String, Object>) item.remove(Constant.ES_SHAPE);
-//                    if (theShape != null) {
-//                        JSONObject geojson = new JSONObject(theShape);
-//                         Geometry geom1 = geometryJSON.read(geojson.toString());
-//                        if (geom1 instanceof LineString || geom1 instanceof MultiLineString) {
-//                            Coordinate[] coors = geom1.getCoordinates();
-//                            int offset = (coors.length + 1) / 2;
-//                            //中间位置
-//                            item.put(Constant.LNG, coors[offset].x);
-//                            item.put(Constant.LAT, coors[offset].y);
-//                        } else {
-//                            Point center = geom1.getCentroid();
-//                            item.put(Constant.LNG, center.getX());
-//                            item.put(Constant.LAT, center.getY());
-//                        }
-//                    }
-//                } catch (IOException e) {
-//                    log.error("读取geojson失败", e);
-//                }
-//            }
+            //处理每一条记录
+            int priority = (int) item.getOrDefault(Constant.PRIORITY, 0);//JDK8检查一个map中匹配提供键的值是否找到，没找到匹配项就使用一个默认值
+            item.put("_score", hit.getScore() - priority * 0.42f);//priority是index的优先权
+//            //如果包含了geo_point
+            if (item.containsKey(Constant.ES_POINT)) {
+                Map<String, Object> thePoint = (Map<String, Object>) item.remove(Constant.ES_POINT);
+                if (thePoint != null) {
+                    double lng = (double) thePoint.get(Constant.LON);
+                    double lat = (double) thePoint.get(Constant.LAT);
+                    item.put(Constant.LNG, BigDecimal.valueOf(lng).setScale(6, RoundingMode.DOWN).doubleValue());
+                    item.put(Constant.LAT, BigDecimal.valueOf(lat).setScale(6, RoundingMode.DOWN).doubleValue());
+                }
+            }
+//            //如果包含了geo_shape
+            if (item.containsKey(Constant.ES_SHAPE)) {
+                try {
+                    Map<String, Object> theShape = (Map<String, Object>) item.remove(Constant.ES_SHAPE);
+                    if (theShape != null) {
+                        JSONObject geojson = new JSONObject(theShape);
+                         Geometry geom1 = geometryJSON.read(geojson.toString());
+                        if (geom1 instanceof LineString || geom1 instanceof MultiLineString) {
+                            Coordinate[] coors = geom1.getCoordinates();
+                            int offset = (coors.length + 1) / 2;
+                            //中间位置
+                            item.put(Constant.LNG, coors[offset].x);
+                            item.put(Constant.LAT, coors[offset].y);
+                        } else {
+                            Point center = geom1.getCentroid();
+                            item.put(Constant.LNG, center.getX());
+                            item.put(Constant.LAT, center.getY());
+                        }
+                    }
+                } catch (IOException e) {
+                    log.error("读取geojson失败", e);
+                }
+            }
             records.add(item);//添加到结果集
         }
         SearchResult searchResult = new SearchResult();
@@ -361,5 +359,13 @@ public class QueryServiceImpl implements QueryService {
         SearchResponse response = helper.search(searchRequest);
 //        SearchHit[] hits = response.getHits().getHits();
         return response;
+    }
+
+    public static void main(String[] args){
+        try {
+            helper.insertDoc();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

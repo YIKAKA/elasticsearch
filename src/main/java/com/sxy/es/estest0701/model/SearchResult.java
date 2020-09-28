@@ -15,12 +15,8 @@ import java.util.Map;
 //如果加该注释的字段为NULL，那么就不序列化这个字段了
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SearchResult {
-    private Integer curpage;
-    private Integer pagecount;
-    private Number curresult;
-    private Long total;
-    private Double time;
-    private String bound;
-    private String cluster;
-    private List<Map<String, Object>> features;
+    private Long totalCount;
+    private String[] satellites;
+    private String[] sensors;
+    private List<data> datas;
 }
