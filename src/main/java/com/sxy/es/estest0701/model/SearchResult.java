@@ -4,10 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.apache.lucene.search.TotalHits;
 
 import java.util.List;
-import java.util.Map;
 
 @Getter
 @Setter
@@ -16,7 +14,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SearchResult {
     private Long totalCount;
-    private String[] satellites;
-    private String[] sensors;
+    private List<String> satellites;
+    private List<String> sensors;
     private List<data> datas;
 }

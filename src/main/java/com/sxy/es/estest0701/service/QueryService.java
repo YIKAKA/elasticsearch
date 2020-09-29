@@ -21,14 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface QueryService {
-
-    void search() throws IOException;
-
-    SearchResult geoSearch(String wkt,String relation,int page, int pagecap) throws IOException, ParseException;
-
-    SearchResult geoSearchByPreindexed(String relation,int page, int pagecap) throws IOException;
-
-    SearchResult scrollSearchByPreindexed(String relation) throws IOException;
-
-    SearchResult searchAfterByPreindexed(String relation,int page) throws  IOException;
+    SearchResult search(String place, String address, String geometry, String relation, List<String> satellites,
+                        List<String> sensors, List<String> levels, double minResolution, double maxResolution,
+                        long startTime, long endTime, int start, int length, String shapefilePath) throws IOException, ParseException;
 }
