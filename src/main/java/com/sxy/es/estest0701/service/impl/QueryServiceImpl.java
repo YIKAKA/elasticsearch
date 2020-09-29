@@ -47,61 +47,16 @@ public class QueryServiceImpl implements QueryService {
             new HttpHost("192.168.10.135",9200,"http")
     );
     static RestHighLevelClientHelper helper = new RestHighLevelClientHelper(builder);
-    Object[] objects = null;
-    SearchHits hits = null;
 
     @Override
     public SearchResult search(String place, String address, String geometry, String relation, List<String> satellites,
                          List<String> sensors, List<String> levels, double minResolution, double maxResolution,
-                         long startTime, long endTime, int start, int length, String shapefilePath) throws IOException, ParseException {
+                         long startTime, long endTime, int start, int length, String objects, String shapefilePath) throws IOException, ParseException {
         SearchResult result = new SearchResult();
         List<data> datasSum = new ArrayList<>();
+        SearchHits hits = null;
         List<String> satellitesSum = Arrays.asList("landsat","sentinel");
         List<String> sensorsSum = Arrays.asList("TM","GTM+");
-        //只有当第一页时才会初始化，之后就直接那前一页最后的sortvalue
-        if (start == 1){
-            objects = new Object[]{"start"};
-            hits = null;
-        }
-//        int i = 0;
-        //start 是第几页，length 这一页有几条数据
-        //start最开始是1
-        //第2页需要传入第一页最后的sortvalue
-        //前端也是一页一页找，所以可以设置成全局
-        //或者标识一下这是第几次查询，点击加载下一页就是2。
-//        while (i < start){
-            SearchResponse searchResponse = searchAfter(objects, place, address, geometry, relation, satellites, sensors, levels, minResolution, maxResolution,
-              startTime, endTime, start, length, shapefilePath);
-            hits = searchResponse.getHits();
-            for (SearchHit hit : hits) {
-                Map<String, Object> item = hit.getSourceAsMap();//结果取成MAP
-                //处理每一条记录
-                data tanSat  = new data();
-                tanSat.setBoundary("a");
-                tanSat.setCloud("a");
-                tanSat.setOtherProperties(null);
-                tanSat.setResolution("a");
-                tanSat.setSatellite("a");
-                tanSat.setSensor("a");
-                tanSat.setTime(objects.toString());
-                datasSum.add(tanSat);
-            }
-            objects = hits.getHits()[hits.getHits().length-1].getSortValues();
-//            i++;
-//        }
-        TotalHits totalHits = hits.getTotalHits();
-        //the total number of hits,must be interpreted in the context of totalHits.relation
-        long numHits = totalHits.value;
-        result.setTotalCount(numHits);
-        result.setDatas(datasSum);
-        result.setSatellites(satellitesSum);
-        result.setSensors(sensorsSum);
-        return result;
-    }
-
-    public static SearchResponse searchAfter(Object[] objects, String place, String address, String geometry, String relation, List<String> satellites,
-                                             List<String> sensors, List<String> levels, double minResolution, double maxResolution,
-                                             long startTime, long endTime, int start, int length, String shapefilePath) throws ParseException, IOException {
         SearchRequest searchRequest = new SearchRequest("landsat");
         BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -133,16 +88,43 @@ public class QueryServiceImpl implements QueryService {
         searchSourceBuilder.query(queryBuilder);
         //每页可以显示多少
         searchSourceBuilder.size(length);
+        //先是排序完的
+        //无法用landsat_id排序
         searchSourceBuilder.sort("_id",SortOrder.DESC);
         //不是第一个
         //之后是需要传入上一页的sortvalue
-        if(!objects[0].toString().equals("start")) {
-            searchSourceBuilder.searchAfter(objects);
+        if("start".equals(objects)) {
+//        if(!objects.get(0).toString().equals("start")) {
+            //为什么一定要object[]类型，因为sort字段可以设置多个，而且类型也不一样
+            searchSourceBuilder.searchAfter(new List[]{Collections.singletonList(objects)});
         }
         searchSourceBuilder.trackTotalHits(true);
+        //查询
         searchRequest.source(searchSourceBuilder);
         searchResponse = helper.search(searchRequest);
-        return searchResponse;
+        hits = searchResponse.getHits();
+        for (SearchHit hit : hits) {
+            Map<String, Object> item = hit.getSourceAsMap();//结果取成MAP
+            //处理每一条记录
+            data tanSat  = new data();
+            tanSat.setBoundary("a");
+            tanSat.setCloud("a");
+            tanSat.setOtherProperties(null);
+            tanSat.setResolution("a");
+            tanSat.setSatellite("a");
+            tanSat.setSensor("a");
+            tanSat.setTime(objects);
+            datasSum.add(tanSat);
+        }
+        objects = String.valueOf(hits.getHits()[hits.getHits().length - 1].getSortValues());
+        TotalHits totalHits = hits.getTotalHits();
+        //the total number of hits,must be interpreted in the context of totalHits.relation
+        long numHits = totalHits.value;
+        result.setTotalCount(numHits);
+        result.setDatas(datasSum);
+        result.setSatellites(satellitesSum);
+        result.setSensors(sensorsSum);
+        result.setObjects(objects);
+        return result;
     }
-
 }

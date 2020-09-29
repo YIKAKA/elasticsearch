@@ -38,11 +38,12 @@ public class EScontroller {
      @RequestParam(value = "endTime", required = false, defaultValue = "0") long endTime,
      @RequestParam(value = "start", required = false, defaultValue = "0") int start,
      @RequestParam(value = "length", required = false, defaultValue = "10") int length,
+     @RequestParam(value = "objects", required = false) String objects,
      @RequestParam(value = "shapefilePath", required = false) String shapefilePath) throws IOException, ParseException {
         Result<SearchResult> result = null;
         SearchResult searchResult = null;
         searchResult = queryService.search(place, address, geometry, relation, satellites, sensors, levels, minResolution, maxResolution,
-          startTime, endTime, start, length, shapefilePath);
+          startTime, endTime, start, length, objects,shapefilePath);
         if(searchResult.getTotalCount() != 0){
             result = new Result<SearchResult>().status("ok").result(searchResult);
         }
