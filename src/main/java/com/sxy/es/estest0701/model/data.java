@@ -19,6 +19,6 @@ public class data implements Serializable {
   private String cloud;
   private String time;
   private String resolution;
-  private List<PropertiesRequest> otherProperties;
+  private Object otherProperties;
 
 }

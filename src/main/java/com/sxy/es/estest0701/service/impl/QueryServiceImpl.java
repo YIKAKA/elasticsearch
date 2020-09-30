@@ -1,5 +1,7 @@
 package com.sxy.es.estest0701.service.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.sxy.es.estest0701.model.SearchResult;
 import com.sxy.es.estest0701.model.data;
 import com.sxy.es.estest0701.service.QueryService;
@@ -10,34 +12,29 @@ import org.apache.lucene.search.TotalHits;
 import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.geo.builders.*;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.geometry.Point;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.GeoShapeQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
-import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
-import java.util.function.Supplier;
-
-import static org.elasticsearch.index.query.QueryBuilders.geoShapeQuery;
 
 @Slf4j
 @Service
@@ -57,15 +54,17 @@ public class QueryServiceImpl implements QueryService {
         SearchHits hits = null;
         List<String> satellitesSum = Arrays.asList("landsat","sentinel");
         List<String> sensorsSum = Arrays.asList("TM","GTM+");
-        SearchRequest searchRequest = new SearchRequest("landsat");
+        SearchRequest searchRequest = new SearchRequest("images");
         BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         SearchResponse searchResponse = null;
-        //place
+        //place 模糊查询--使用高德API，获取经纬度，构造POINT，与ES进行地理运算
         if (null != place){
+            //根据地名获取WKT格式的字符串
+            geometry = getWKTByGD(place);
 
         }
-        //address
+        //address 精确查询--需要再建一个GADM全球行政区划的index
         if (null != address){
 
         }
@@ -114,7 +113,7 @@ public class QueryServiceImpl implements QueryService {
         }else if ("Polygon".equals(geom.getGeometryType())){
             shapeBuilder = new PolygonBuilder(new CoordinatesBuilder().coordinates(geom.getCoordinates()).close());
         }
-        GeoShapeQueryBuilder geoQuery = QueryBuilders.geoShapeQuery("location", shapeBuilder);
+        GeoShapeQueryBuilder geoQuery = QueryBuilders.geoShapeQuery("boundary", shapeBuilder);
         switch (relation) {
             case "WITHIN":
                 geoQuery.relation(ShapeRelation.WITHIN);
@@ -149,13 +148,13 @@ public class QueryServiceImpl implements QueryService {
             Map<String, Object> item = hit.getSourceAsMap();//结果取成MAP
             //处理每一条记录
             data tanSat  = new data();
-            tanSat.setBoundary("a");
-            tanSat.setCloud("a");
-            tanSat.setOtherProperties(null);
-            tanSat.setResolution("a");
-            tanSat.setSatellite("a");
-            tanSat.setSensor("a");
-            tanSat.setTime(objects);
+            tanSat.setBoundary(item.get("boundary").toString());
+            tanSat.setCloud(item.get("cloud").toString());
+            tanSat.setOtherProperties(item.get("other-properties"));
+            tanSat.setResolution(item.get("resolution").toString());
+            tanSat.setSatellite(item.get("satellite").toString());
+            tanSat.setSensor(item.get("sensor").toString());
+            tanSat.setTime(item.get("start-time").toString());
             datasSum.add(tanSat);
         }
         objects = String.valueOf(hits.getHits()[hits.getHits().length - 1].getSortValues());
@@ -168,5 +167,71 @@ public class QueryServiceImpl implements QueryService {
         result.setSensors(sensorsSum);
         result.setObjects(objects);
         return result;
+    }
+
+    public static String getWKTByGD(String place){
+       String path = "https://restapi.amap.com/v3/geocode/geo?address="+place+"&output=JSON&key=285fa381b04ac0b349db564c7660adcf";
+        HttpURLConnection connection = null;
+        InputStream is = null;
+        BufferedReader br = null;
+        String result = null;
+        String wkt = null;
+        try {
+            // 创建远程url连接对象
+            URL url = new URL(path);
+            // 通过远程url连接对象打开一个连接，强转成httpURLConnection类
+            connection = (HttpURLConnection) url.openConnection();
+            // 设置连接方式：get
+            connection.setRequestMethod("GET");
+            // 设置连接主机服务器的超时时间：15000毫秒
+            connection.setConnectTimeout(15000);
+            // 设置读取远程返回的数据时间：60000毫秒
+            connection.setReadTimeout(60000);
+            // 发送请求
+            connection.connect();
+            // 通过connection连接，获取输入流
+            if (connection.getResponseCode() == 200) {
+                is = connection.getInputStream();
+                // 封装输入流is，并指定字符集
+                br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+                // 存放数据
+                StringBuffer sbf = new StringBuffer();
+                String temp = null;
+                while ((temp = br.readLine()) != null) {
+                    sbf.append(temp);
+                    sbf.append("\r\n");
+                }
+                result = sbf.toString();
+                JSONObject jsonObject = JSON.parseObject(result);
+                String location = jsonObject.getJSONArray("geocodes").get(0).toString();
+                JSONObject locationJSON = JSON.parseObject(location);
+                String jw = locationJSON.get("location").toString();
+                //将，替换为空格
+                wkt = "POINT("+jw.replace(","," ")+")";
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            // 关闭资源
+            if (null != br) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (null != is) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            connection.disconnect();// 关闭远程连接
+        }
+        return wkt;
     }
 }
