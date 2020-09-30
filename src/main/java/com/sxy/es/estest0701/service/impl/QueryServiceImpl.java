@@ -61,10 +61,52 @@ public class QueryServiceImpl implements QueryService {
         BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         SearchResponse searchResponse = null;
+        //place
+        if (null != place){
+
+        }
+        //address
+        if (null != address){
+
+        }
+        //satellite
+        if (null != satellites && satellites.size() != 0){
+            for (String satellite: satellites) {
+                queryBuilder.must(QueryBuilders.termQuery("satellite", satellite));
+            }
+        }
+        //sensor
+        if (null != sensors && sensors.size() != 0){
+            for (String sensor: sensors
+            ) {
+                queryBuilder.must(QueryBuilders.termQuery("sensor", sensor));
+            }
+        }
+        //level
+        if (null != levels && levels.size() != 0){
+            for (String level: levels
+            ) {
+                queryBuilder.must(QueryBuilders.termQuery("level", level));
+            }
+        }
+        //resoulution
+        if (minResolution != 0) {
+            queryBuilder.must(QueryBuilders.rangeQuery("resolution").gte(minResolution));
+        }
+        if (maxResolution != 0) {
+            queryBuilder.must(QueryBuilders.rangeQuery("resolution" ).lte(maxResolution));
+        }
+        //time
+        if (startTime != 0) {
+            queryBuilder.must(QueryBuilders.rangeQuery("start-time").gte(startTime));
+        }
+        if (endTime != 0) {
+            queryBuilder.must(QueryBuilders.rangeQuery("end-time").lte(endTime));
+        }
+        //地理检索 剩余一个上传文件的shapefile
         WKTReader wktReader = new WKTReader();
         Geometry geom = wktReader.read(geometry);
         ShapeBuilder shapeBuilder = null;
-
         if("Point".equals(geom.getGeometryType())){
             shapeBuilder = new PointBuilder(geom.getCoordinate().x,geom.getCoordinate().y);
         }else if ("LineString".equals(geom.getGeometryType())){
