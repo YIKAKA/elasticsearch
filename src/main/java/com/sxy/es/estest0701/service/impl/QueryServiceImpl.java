@@ -52,6 +52,7 @@ public class QueryServiceImpl implements QueryService {
         SearchResult result = new SearchResult();
         List<data> datasSum = new ArrayList<>();
         SearchHits hits = null;
+        //todo 卫星和传感器返回结果的 stream groupby
         List<String> satellitesSum = Arrays.asList("landsat","sentinel");
         List<String> sensorsSum = Arrays.asList("TM","GTM+");
         SearchRequest searchRequest = new SearchRequest("images");
@@ -62,8 +63,8 @@ public class QueryServiceImpl implements QueryService {
         if (null != place){
             //根据地名获取WKT格式的字符串
             geometry = getWKTByGD(place);
-
         }
+        //todo 地名检索 精准的矢量边界
         //address 精确查询--需要再建一个GADM全球行政区划的index
         if (null != address){
 
@@ -83,8 +84,7 @@ public class QueryServiceImpl implements QueryService {
         }
         //level
         if (null != levels && levels.size() != 0){
-            for (String level: levels
-            ) {
+            for (String level: levels) {
                 queryBuilder.must(QueryBuilders.termQuery("level", level));
             }
         }
@@ -102,29 +102,31 @@ public class QueryServiceImpl implements QueryService {
         if (endTime != 0) {
             queryBuilder.must(QueryBuilders.rangeQuery("end-time").lte(endTime));
         }
-        //地理检索 剩余一个上传文件的shapefile
-        WKTReader wktReader = new WKTReader();
-        Geometry geom = wktReader.read(geometry);
-        ShapeBuilder shapeBuilder = null;
-        if("Point".equals(geom.getGeometryType())){
-            shapeBuilder = new PointBuilder(geom.getCoordinate().x,geom.getCoordinate().y);
-        }else if ("LineString".equals(geom.getGeometryType())){
-            shapeBuilder = new LineStringBuilder(new CoordinatesBuilder().coordinates(geom.getCoordinates()).close());
-        }else if ("Polygon".equals(geom.getGeometryType())){
-            shapeBuilder = new PolygonBuilder(new CoordinatesBuilder().coordinates(geom.getCoordinates()).close());
+        //todo 上传shapefile矢量文件
+        if (null != geometry){
+            WKTReader wktReader = new WKTReader();
+            Geometry geom = wktReader.read(geometry);
+            ShapeBuilder shapeBuilder = null;
+            if("Point".equals(geom.getGeometryType())){
+                shapeBuilder = new PointBuilder(geom.getCoordinate().x,geom.getCoordinate().y);
+            }else if ("LineString".equals(geom.getGeometryType())){
+                shapeBuilder = new LineStringBuilder(new CoordinatesBuilder().coordinates(geom.getCoordinates()).close());
+            }else if ("Polygon".equals(geom.getGeometryType())){
+                shapeBuilder = new PolygonBuilder(new CoordinatesBuilder().coordinates(geom.getCoordinates()).close());
+            }
+            GeoShapeQueryBuilder geoQuery = QueryBuilders.geoShapeQuery("boundary", shapeBuilder);
+            switch (relation) {
+                case "WITHIN":
+                    geoQuery.relation(ShapeRelation.WITHIN);
+                case "CONTAINS":
+                    geoQuery.relation(ShapeRelation.CONTAINS);
+                case "DISJOINT":
+                    geoQuery.relation(ShapeRelation.DISJOINT);
+                default:
+                    geoQuery.relation(ShapeRelation.INTERSECTS);
+            }
+            queryBuilder.filter(geoQuery);
         }
-        GeoShapeQueryBuilder geoQuery = QueryBuilders.geoShapeQuery("boundary", shapeBuilder);
-        switch (relation) {
-            case "WITHIN":
-                geoQuery.relation(ShapeRelation.WITHIN);
-            case "CONTAINS":
-                geoQuery.relation(ShapeRelation.CONTAINS);
-            case "DISJOINT":
-                geoQuery.relation(ShapeRelation.DISJOINT);
-            default:
-                geoQuery.relation(ShapeRelation.INTERSECTS);
-        }
-        queryBuilder.filter(geoQuery);
 
         searchSourceBuilder.query(queryBuilder);
         //每页可以显示多少
@@ -135,13 +137,13 @@ public class QueryServiceImpl implements QueryService {
         //不是第一个
         //之后是需要传入上一页的sortvalue
         if("start".equals(objects)) {
-//        if(!objects.get(0).toString().equals("start")) {
             //为什么一定要object[]类型，因为sort字段可以设置多个，而且类型也不一样
             searchSourceBuilder.searchAfter(new List[]{Collections.singletonList(objects)});
         }
         searchSourceBuilder.trackTotalHits(true);
         //查询
         searchRequest.source(searchSourceBuilder);
+        //todo 标签查询
         searchResponse = helper.search(searchRequest);
         hits = searchResponse.getHits();
         for (SearchHit hit : hits) {
