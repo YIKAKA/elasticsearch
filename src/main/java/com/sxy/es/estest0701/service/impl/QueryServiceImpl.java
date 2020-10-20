@@ -136,7 +136,8 @@ public class QueryServiceImpl implements QueryService {
         searchSourceBuilder.sort("_id",SortOrder.DESC);
         //不是第一个
         //之后是需要传入上一页的sortvalue
-        if("start".equals(objects)) {
+//        if("start".equals(objects)) {
+        if(!objects.equals("start")) {
             //为什么一定要object[]类型，因为sort字段可以设置多个，而且类型也不一样
             searchSourceBuilder.searchAfter(new List[]{Collections.singletonList(objects)});
         }
