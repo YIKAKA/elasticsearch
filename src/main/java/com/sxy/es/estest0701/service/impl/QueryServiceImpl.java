@@ -52,9 +52,9 @@ public class QueryServiceImpl implements QueryService {
                          long startTime, long endTime, int start, int length, String objects, String shapefilePath) throws IOException, ParseException {
         SearchResult result = new SearchResult();
         List<data> datasSum = new ArrayList<>();
-        SearchHits hits = null;
-        List<String> satellitesSum =  null;
-        List<String> sensorsSum = null;
+        SearchHits hits;
+        List<String> satellitesSum;
+        List<String> sensorsSum;
         SearchRequest searchRequest = new SearchRequest("images");
         BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -133,13 +133,14 @@ public class QueryServiceImpl implements QueryService {
         searchSourceBuilder.size(length);
         //先是排序完的
         //无法用landsat_id排序
-        searchSourceBuilder.sort("_id",SortOrder.DESC);
+        searchSourceBuilder.sort("imageid",SortOrder.DESC);
         //不是第一个
         //之后是需要传入上一页的sortvalue
-//        if("start".equals(objects)) {
-        if(! "start".equals(objects)) {
+        if(!"start".equals(objects)) {
             //为什么一定要object[]类型，因为sort字段可以设置多个，而且类型也不一样
-            searchSourceBuilder.searchAfter(new List[]{Collections.singletonList(objects)});
+            Object[] objects1 = new Object[1];
+            objects1[0] = objects;
+            searchSourceBuilder.searchAfter(objects1);
         }
         searchSourceBuilder.trackTotalHits(true);
         //查询
@@ -147,6 +148,7 @@ public class QueryServiceImpl implements QueryService {
         System.out.println(searchRequest.source().toString());
         searchResponse = helper.search(searchRequest);
         hits = searchResponse.getHits();
+        //todo 没有结果的时候
         for (SearchHit hit : hits) {
             Map<String, Object> item = hit.getSourceAsMap();//结果取成MAP
             //处理每一条记录
@@ -158,20 +160,27 @@ public class QueryServiceImpl implements QueryService {
             tanSat.setSatellite(item.get("satellite").toString());
             tanSat.setSensor(item.get("sensor").toString());
             tanSat.setTime(item.get("start-time").toString());
+            tanSat.setImageID(item.get("imageid").toString());
             datasSum.add(tanSat);
         }
         //获取所有结果的卫星
         Map<String,List<data>> satelliteListMap=datasSum.stream()
           .collect(Collectors.groupingBy(data::getSatellite));
         Set<String> satelliteListSet = satelliteListMap.keySet();
-        satellitesSum.addAll(satelliteListSet);
+        satellitesSum = new  ArrayList<String>(satelliteListSet);
         //获取所有结果的传感器
         Map<String,List<data>> sensorListMap=datasSum.stream()
           .collect(Collectors.groupingBy(data::getSensor));
         Set<String> sensorListSet = sensorListMap.keySet();
-        satellitesSum.addAll(sensorListSet);
+        sensorsSum = new  ArrayList<String>(sensorListSet);
         //searchafter 参数
-        objects = String.valueOf(hits.getHits()[hits.getHits().length - 1].getSortValues());
+        if (hits.getHits().length == 0){
+            Object[] imageid = new Object[]{"start"};
+            objects = imageid[0].toString();
+        }else {
+            Object[] imageid = hits.getHits()[hits.getHits().length - 1].getSortValues();
+            objects = imageid[0].toString();
+        }
         TotalHits totalHits = hits.getTotalHits();
         //the total number of hits,must be interpreted in the context of totalHits.relation
         long numHits = totalHits.value;

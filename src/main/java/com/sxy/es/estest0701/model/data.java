@@ -20,5 +20,6 @@ public class data implements Serializable {
   private String time;
   private String resolution;
   private Object otherProperties;
+  private String imageID;
 
 }

@@ -22,7 +22,7 @@ public class SparkHelper {
         conf.setMaster("local");
         conf.setAppName("CSVToES");
         conf.set("es.index.auto.create", "true");
-        conf.set("es.nodes","116.62.149.8");
+        conf.set("es.nodes","192.168.10.135");
         conf.set("es.port","9200");
         SparkContext sc = new SparkContext(conf);
 
@@ -93,8 +93,8 @@ public class SparkHelper {
                     String wkt = "POLYGON ((" + lowerLeftCornerLongitude + " " + lowerLeftCornerLatitude + "," + lowerRightCornerLongitude + " " + lowerRightCornerLatitude + "," + upperRightCornerLongitude + " " + upperRightCornerLatitude + "," + upperLeftCornerLongitude + " " + upperLeftCornerLatitude + "," + lowerLeftCornerLongitude + " " + lowerLeftCornerLatitude + "))";
                     String centerPointWKT = "POINT(" + sceneCenterLongitude + " " + sceneCenterLatitude + ")";
 
-                    result.put("LANDSAT_PRODUCT_ID", resmap.get("LANDSAT_PRODUCT_ID"));
-                    result.put("location", wkt);
+                    result.put("imageid", resmap.get("LANDSAT_PRODUCT_ID"));
+//                    result.put("location", wkt);
                     result.put("boundary", wkt);
                     result.put("center-point", centerPointWKT);
                     result.put("satellite", "Landsat");
