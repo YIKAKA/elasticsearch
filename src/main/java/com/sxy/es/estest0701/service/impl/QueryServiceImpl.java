@@ -35,6 +35,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -52,14 +53,13 @@ public class QueryServiceImpl implements QueryService {
         SearchResult result = new SearchResult();
         List<data> datasSum = new ArrayList<>();
         SearchHits hits = null;
-        //todo 卫星和传感器返回结果的 stream groupby
-        List<String> satellitesSum = Arrays.asList("landsat","sentinel");
-        List<String> sensorsSum = Arrays.asList("TM","GTM+");
+        List<String> satellitesSum =  null;
+        List<String> sensorsSum = null;
         SearchRequest searchRequest = new SearchRequest("images");
         BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         SearchResponse searchResponse = null;
-        //place 模糊查询--使用高德API，获取经纬度，构造POINT，与ES进行地理运算
+        //place 地址 模糊查询--使用高德API，获取经纬度，构造POINT，与ES进行地理运算
         if (null != place){
             //根据地名获取WKT格式的字符串
             geometry = getWKTByGD(place);
@@ -137,14 +137,14 @@ public class QueryServiceImpl implements QueryService {
         //不是第一个
         //之后是需要传入上一页的sortvalue
 //        if("start".equals(objects)) {
-        if(!objects.equals("start")) {
+        if(! "start".equals(objects)) {
             //为什么一定要object[]类型，因为sort字段可以设置多个，而且类型也不一样
             searchSourceBuilder.searchAfter(new List[]{Collections.singletonList(objects)});
         }
         searchSourceBuilder.trackTotalHits(true);
         //查询
         searchRequest.source(searchSourceBuilder);
-        //todo 标签查询
+        System.out.println(searchRequest.source().toString());
         searchResponse = helper.search(searchRequest);
         hits = searchResponse.getHits();
         for (SearchHit hit : hits) {
@@ -160,6 +160,17 @@ public class QueryServiceImpl implements QueryService {
             tanSat.setTime(item.get("start-time").toString());
             datasSum.add(tanSat);
         }
+        //获取所有结果的卫星
+        Map<String,List<data>> satelliteListMap=datasSum.stream()
+          .collect(Collectors.groupingBy(data::getSatellite));
+        Set<String> satelliteListSet = satelliteListMap.keySet();
+        satellitesSum.addAll(satelliteListSet);
+        //获取所有结果的传感器
+        Map<String,List<data>> sensorListMap=datasSum.stream()
+          .collect(Collectors.groupingBy(data::getSensor));
+        Set<String> sensorListSet = sensorListMap.keySet();
+        satellitesSum.addAll(sensorListSet);
+        //searchafter 参数
         objects = String.valueOf(hits.getHits()[hits.getHits().length - 1].getSortValues());
         TotalHits totalHits = hits.getTotalHits();
         //the total number of hits,must be interpreted in the context of totalHits.relation

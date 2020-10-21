@@ -16,21 +16,17 @@ import java.io.IOException;
 import java.util.*;
 
 public class SparkHelper {
-
-//    private List<String> csvSchemaColumns = null;
-
     public static void main(String[] args) {
        List<String> csvSchemaColumns = null;
-//    public int csvToES() throws IOException {
         SparkConf conf = new SparkConf();
         conf.setMaster("local");
         conf.setAppName("CSVToES");
         conf.set("es.index.auto.create", "true");
-        conf.set("es.nodes","192.168.10.135");
+        conf.set("es.nodes","116.62.149.8");
         conf.set("es.port","9200");
         SparkContext sc = new SparkContext(conf);
 
-        RDD<String> inputRDD = TextFile.withCharset(sc,"E:\\xm\\es20200720\\LANDSAT_TM_C1.csv\\LANDSAT_TM_C1.csv","UTF-8");
+        RDD<String> inputRDD = TextFile.withCharset(sc,"C:\\Users\\lenovo\\Desktop\\LANDSAT_TM_C1.csv","UTF-8");
 
         String header = inputRDD.first();
 //        String header = "LANDSAT_PRODUCT_ID,upperRightCornerLatitude,lowerLeftCornerLatitude,upperRightCornerLongitude,lowerRightCornerLongitude,lowerRightCornerLatitude,upperLeftCornerLongitude,lowerLeftCornerLongitude,upperLeftCornerLatitude";

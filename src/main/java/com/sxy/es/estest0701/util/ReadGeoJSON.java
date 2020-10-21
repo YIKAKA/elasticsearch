@@ -24,11 +24,11 @@ public class ReadGeoJSON {
     SparkConf conf = new SparkConf();
     conf.setMaster("local");
     conf.setAppName("CSVToES");
-    conf.set("es.nodes","192.168.10.135");
+    conf.set("es.nodes","116.62.149.8");
     conf.set("es.port","9200");
     SparkContext sc = new SparkContext(conf);
 
-    RDD<String> inputRDD = TextFile.withCharset(sc,"E:\\xm\\es20200720\\地名地址库\\GADM\\china\\china2.geojsonl.json","UTF-8");
+    RDD<String> inputRDD = TextFile.withCharset(sc,"E:\\xm\\20200708重研\\es20200720\\地名地址库\\GADM\\china\\china2.geojsonl.json","UTF-8");
     JavaRDD rdd = inputRDD.toJavaRDD().map(new Function<String, Map<String,Object>>(){
         public Map<String,Object> call(String s) throws Exception {
           HashMap<String,Object> result =new HashMap<String,Object>();
