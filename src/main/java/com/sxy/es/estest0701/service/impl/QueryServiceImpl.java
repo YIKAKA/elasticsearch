@@ -67,7 +67,24 @@ public class QueryServiceImpl implements QueryService {
         //todo 地名检索 精准的矢量边界
         //address 精确查询--需要再建一个GADM全球行政区划的index
         if (null != address){
-
+            String id = getIDByName(address, rank);
+            GeoShapeQueryBuilder geoQuery = new GeoShapeQueryBuilder("boundary",id);
+            switch (rank){
+                case 1:
+                    geoQuery.indexedShapeIndex("country");
+                    break;
+                case 2:
+                    geoQuery.indexedShapeIndex("province");
+                    break;
+                case 3:
+                    geoQuery.indexedShapeIndex("city");
+                    break;
+                case 4:
+                    geoQuery.indexedShapeIndex("county");
+                    break;
+            }
+            geoQuery.indexedShapePath("location");
+            queryBuilder.filter(geoQuery);
         }
         //satellite
         if (null != satellites && satellites.size() != 0){
@@ -259,18 +276,38 @@ public class QueryServiceImpl implements QueryService {
         return wkt;
     }
 
-    public static String getGeomByName(String address,int rank){
+    public static String getIDByName(String address,int rank) throws IOException {
         String geom = "";
+        String id = null;
+        SearchRequest searchRequest = null;
+        BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        SearchResponse searchResponse = null;
         switch (rank){
             case 1:
+                searchRequest = new SearchRequest("country");
                 break;
             case 2:
+                searchRequest = new SearchRequest("province");
                 break;
             case 3:
+                searchRequest = new SearchRequest("city");
                 break;
             case 4:
+                searchRequest = new SearchRequest("county");
                 break;
         }
-        return geom;
+        queryBuilder.must(QueryBuilders.multiMatchQuery(address,"name1","name2","name3"));
+        searchSourceBuilder.size(1);
+        searchSourceBuilder.query(queryBuilder);
+        searchRequest.source(searchSourceBuilder);
+        System.out.println(searchRequest.source().toString());
+        searchResponse = helper.search(searchRequest);
+        SearchHits hits = searchResponse.getHits();
+        //todo 没有结果的时候
+        for (SearchHit hit : hits){
+            id =  hit.getId();
+        }
+        return id;
     }
 }
