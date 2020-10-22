@@ -49,7 +49,7 @@ public class QueryServiceImpl implements QueryService {
     @Override
     public SearchResult search(String place, String address,int rank, String geometry, String relation, List<String> satellites,
                          List<String> sensors, List<String> levels, double minResolution, double maxResolution,
-                         long startTime, long endTime, int start, int length, String objects, String shapefilePath) throws IOException, ParseException {
+                         long startTime, long endTime, int length, String objects, String shapefilePath) throws IOException, ParseException {
         SearchResult result = new SearchResult();
         List<data> datasSum = new ArrayList<>();
         SearchHits hits;
@@ -64,7 +64,6 @@ public class QueryServiceImpl implements QueryService {
             //根据地名获取WKT格式的字符串
             geometry = getWKTByGD(place);
         }
-        //todo 地名检索 精准的矢量边界
         //address 精确查询--需要再建一个GADM全球行政区划的index
         if (null != address){
             String id = getIDByName(address, rank);
@@ -88,22 +87,15 @@ public class QueryServiceImpl implements QueryService {
         }
         //satellite
         if (null != satellites && satellites.size() != 0){
-            for (String satellite: satellites) {
-                queryBuilder.must(QueryBuilders.termQuery("satellite", satellite));
-            }
+            queryBuilder.must(QueryBuilders.termsQuery("satellite", satellites));
         }
         //sensor
         if (null != sensors && sensors.size() != 0){
-            for (String sensor: sensors
-            ) {
-                queryBuilder.must(QueryBuilders.termQuery("sensor", sensor));
-            }
+            queryBuilder.must(QueryBuilders.termsQuery("sensor", sensors));
         }
         //level
         if (null != levels && levels.size() != 0){
-            for (String level: levels) {
-                queryBuilder.must(QueryBuilders.termQuery("level", level));
-            }
+            queryBuilder.must(QueryBuilders.termsQuery("level", levels));
         }
         //resoulution
         if (minResolution != 0) {
@@ -120,6 +112,7 @@ public class QueryServiceImpl implements QueryService {
             queryBuilder.must(QueryBuilders.rangeQuery("end-time").lte(endTime));
         }
         //todo 上传shapefile矢量文件
+
         if (null != geometry){
             WKTReader wktReader = new WKTReader();
             Geometry geom = wktReader.read(geometry);
@@ -135,10 +128,13 @@ public class QueryServiceImpl implements QueryService {
             switch (relation) {
                 case "WITHIN":
                     geoQuery.relation(ShapeRelation.WITHIN);
+                    break;
                 case "CONTAINS":
                     geoQuery.relation(ShapeRelation.CONTAINS);
+                    break;
                 case "DISJOINT":
                     geoQuery.relation(ShapeRelation.DISJOINT);
+                    break;
                 default:
                     geoQuery.relation(ShapeRelation.INTERSECTS);
             }
@@ -165,48 +161,56 @@ public class QueryServiceImpl implements QueryService {
         System.out.println(searchRequest.source().toString());
         searchResponse = helper.search(searchRequest);
         hits = searchResponse.getHits();
-        //todo 没有结果的时候
-        for (SearchHit hit : hits) {
-            Map<String, Object> item = hit.getSourceAsMap();//结果取成MAP
-            //处理每一条记录
-            data tanSat  = new data();
-            tanSat.setBoundary(item.get("boundary").toString());
-            tanSat.setCloud(item.get("cloud").toString());
-            tanSat.setOtherProperties(item.get("other-properties"));
-            tanSat.setResolution(item.get("resolution").toString());
-            tanSat.setSatellite(item.get("satellite").toString());
-            tanSat.setSensor(item.get("sensor").toString());
-            tanSat.setTime(item.get("start-time").toString());
-            tanSat.setImageID(item.get("imageid").toString());
-//            tanSat.setHasEntity(item.get("hasEntity").toString());
-            datasSum.add(tanSat);
-        }
-        //获取所有结果的卫星
-        Map<String,List<data>> satelliteListMap=datasSum.stream()
-          .collect(Collectors.groupingBy(data::getSatellite));
-        Set<String> satelliteListSet = satelliteListMap.keySet();
-        satellitesSum = new  ArrayList<String>(satelliteListSet);
-        //获取所有结果的传感器
-        Map<String,List<data>> sensorListMap=datasSum.stream()
-          .collect(Collectors.groupingBy(data::getSensor));
-        Set<String> sensorListSet = sensorListMap.keySet();
-        sensorsSum = new  ArrayList<String>(sensorListSet);
-        //searchafter 参数
-        if (hits.getHits().length == 0){
-            Object[] imageid = new Object[]{"start"};
-            objects = imageid[0].toString();
+        // 没有结果的时候
+        if(hits.getTotalHits().value == 0){
+            result.setTotalCount((long) 0);
+            result.setDatas(null);
+            result.setSatellites(null);
+            result.setSensors(null);
+            result.setObjects("start");
         }else {
-            Object[] imageid = hits.getHits()[hits.getHits().length - 1].getSortValues();
-            objects = imageid[0].toString();
+            for (SearchHit hit : hits) {
+                Map<String, Object> item = hit.getSourceAsMap();//结果取成MAP
+                //处理每一条记录
+                data tanSat = new data();
+                tanSat.setBoundary(item.get("boundary").toString());
+                tanSat.setCloud(item.get("cloud").toString());
+                tanSat.setOtherProperties(item.get("other-properties"));
+                tanSat.setResolution(item.get("resolution").toString());
+                tanSat.setSatellite(item.get("satellite").toString());
+                tanSat.setSensor(item.get("sensor").toString());
+                tanSat.setTime(item.get("start-time").toString());
+                tanSat.setImageID(item.get("imageid").toString());
+                //            tanSat.setHasEntity(item.get("hasEntity").toString());
+                datasSum.add(tanSat);
+            }
+            //获取所有结果的卫星
+            Map<String, List<data>> satelliteListMap = datasSum.stream()
+              .collect(Collectors.groupingBy(data::getSatellite));
+            Set<String> satelliteListSet = satelliteListMap.keySet();
+            satellitesSum = new ArrayList<String>(satelliteListSet);
+            //获取所有结果的传感器
+            Map<String, List<data>> sensorListMap = datasSum.stream()
+              .collect(Collectors.groupingBy(data::getSensor));
+            Set<String> sensorListSet = sensorListMap.keySet();
+            sensorsSum = new ArrayList<String>(sensorListSet);
+            //searchafter 参数
+            if (hits.getHits().length == 0) {
+                Object[] imageid = new Object[]{"start"};
+                objects = imageid[0].toString();
+            } else {
+                Object[] imageid = hits.getHits()[hits.getHits().length - 1].getSortValues();
+                objects = imageid[0].toString();
+            }
+            TotalHits totalHits = hits.getTotalHits();
+            //the total number of hits,must be interpreted in the context of totalHits.relation
+            long numHits = totalHits.value;
+            result.setTotalCount(numHits);
+            result.setDatas(datasSum);
+            result.setSatellites(satellitesSum);
+            result.setSensors(sensorsSum);
+            result.setObjects(objects);
         }
-        TotalHits totalHits = hits.getTotalHits();
-        //the total number of hits,must be interpreted in the context of totalHits.relation
-        long numHits = totalHits.value;
-        result.setTotalCount(numHits);
-        result.setDatas(datasSum);
-        result.setSatellites(satellitesSum);
-        result.setSensors(sensorsSum);
-        result.setObjects(objects);
         return result;
     }
 
@@ -304,7 +308,6 @@ public class QueryServiceImpl implements QueryService {
         System.out.println(searchRequest.source().toString());
         searchResponse = helper.search(searchRequest);
         SearchHits hits = searchResponse.getHits();
-        //todo 没有结果的时候
         for (SearchHit hit : hits){
             id =  hit.getId();
         }

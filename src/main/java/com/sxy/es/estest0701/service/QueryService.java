@@ -23,5 +23,5 @@ import java.util.Map;
 public interface QueryService {
     SearchResult search(String place, String address, int rank,String geometry, String relation, List<String> satellites,
                         List<String> sensors, List<String> levels, double minResolution, double maxResolution,
-                        long startTime, long endTime, int start, int length, String objects, String shapefilePath) throws IOException, ParseException;
+                        long startTime, long endTime, int length, String objects, String shapefilePath) throws IOException, ParseException;
 }
