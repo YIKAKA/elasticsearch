@@ -47,7 +47,7 @@ public class QueryServiceImpl implements QueryService {
     static RestHighLevelClientHelper helper = new RestHighLevelClientHelper(builder);
 
     @Override
-    public SearchResult search(String place, String address, String geometry, String relation, List<String> satellites,
+    public SearchResult search(String place, String address,int rank, String geometry, String relation, List<String> satellites,
                          List<String> sensors, List<String> levels, double minResolution, double maxResolution,
                          long startTime, long endTime, int start, int length, String objects, String shapefilePath) throws IOException, ParseException {
         SearchResult result = new SearchResult();
@@ -161,6 +161,7 @@ public class QueryServiceImpl implements QueryService {
             tanSat.setSensor(item.get("sensor").toString());
             tanSat.setTime(item.get("start-time").toString());
             tanSat.setImageID(item.get("imageid").toString());
+//            tanSat.setHasEntity(item.get("hasEntity").toString());
             datasSum.add(tanSat);
         }
         //获取所有结果的卫星
@@ -256,5 +257,20 @@ public class QueryServiceImpl implements QueryService {
             connection.disconnect();// 关闭远程连接
         }
         return wkt;
+    }
+
+    public static String getGeomByName(String address,int rank){
+        String geom = "";
+        switch (rank){
+            case 1:
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+            case 4:
+                break;
+        }
+        return geom;
     }
 }

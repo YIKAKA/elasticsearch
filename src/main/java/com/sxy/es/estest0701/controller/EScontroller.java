@@ -27,6 +27,7 @@ public class EScontroller {
     public Result<SearchResult> listPublicTanSatLayersByGeometryByES(HttpServletRequest request,
      @RequestParam(value = "place", required = false) String place,
      @RequestParam(value = "address", required = false) String address,
+     @RequestParam(value = "rank", required = false) int rank,
      @RequestParam(value = "geometry", required = false) String geometry,
      @RequestParam(value = "relation", required = false, defaultValue = "INTERSECTS") String relation,
      @RequestParam(value = "satellite[]", required = false) List<String> satellites,
@@ -42,7 +43,7 @@ public class EScontroller {
      @RequestParam(value = "shapefilePath", required = false) String shapefilePath) throws IOException, ParseException {
         Result<SearchResult> result = null;
         SearchResult searchResult = null;
-        searchResult = queryService.search(place, address, geometry, relation, satellites, sensors, levels, minResolution, maxResolution,
+        searchResult = queryService.search(place, address, rank, geometry, relation, satellites, sensors, levels, minResolution, maxResolution,
           startTime, endTime, start, length, objects,shapefilePath);
         if(searchResult.getTotalCount() != 0){
             result = new Result<SearchResult>().status("ok").result(searchResult);

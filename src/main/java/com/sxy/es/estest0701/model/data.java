@@ -21,5 +21,6 @@ public class data implements Serializable {
   private String resolution;
   private Object otherProperties;
   private String imageID;
+//  private String hasEntity;
 
 }
