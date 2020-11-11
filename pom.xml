@@ -121,12 +121,6 @@
             <version>20180813</version>
         </dependency>
 
-        <!--        spark-->
-        <!--        <dependency>-->
-        <!--            <groupId>org.elasticsearch</groupId>-->
-        <!--            <artifactId>elasticsearch-hadoop</artifactId>-->
-        <!--            <version>7.8.0</version>-->
-        <!--        </dependency>-->
         <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch-spark-20_2.11</artifactId>

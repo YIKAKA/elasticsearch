@@ -27,7 +27,7 @@ public class EScontroller {
     public Result<SearchResult> listPublicTanSatLayersByGeometryByES(HttpServletRequest request,
      @RequestParam(value = "place", required = false) String place,
      @RequestParam(value = "address", required = false) String address,
-     @RequestParam(value = "rank", required = false, defaultValue = "1") int rank,
+     @RequestParam(value = "rank", required = false) int rank,
      @RequestParam(value = "geometry", required = false) String geometry,
      @RequestParam(value = "relation", required = false, defaultValue = "INTERSECTS") String relation,
      @RequestParam(value = "satellites", required = false) List<String> satellites,

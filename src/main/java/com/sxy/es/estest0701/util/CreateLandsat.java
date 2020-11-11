@@ -7,7 +7,6 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.rdd.RDD;
 import org.elasticsearch.spark.rdd.EsSpark;
@@ -15,14 +14,14 @@ import org.elasticsearch.spark.rdd.EsSpark;
 import java.io.IOException;
 import java.util.*;
 
-public class SparkHelper {
+public class CreateLandsat {
     public static void main(String[] args) {
        List<String> csvSchemaColumns = null;
         SparkConf conf = new SparkConf();
         conf.setMaster("local");
         conf.setAppName("CSVToES");
         conf.set("es.index.auto.create", "true");
-        conf.set("es.nodes","192.168.2.2");
+        conf.set("es.nodes","192.168.2.23");
         conf.set("es.port","9200");
         SparkContext sc = new SparkContext(conf);
 
@@ -54,7 +53,9 @@ public class SparkHelper {
                 String[] fields=v1.split(",");
                //需要的字段在表格中的位置，0开头
 //                List<Integer> l = Arrays.asList(3,4,15,21,26,28,30,31,32,33,35,36,38,42);
-                List<Integer> l = Arrays.asList(3,4,5,11,13,15,21,22,26,28,30,31,32,33,35,36,38,41,42);
+                List<Integer> l = Arrays.asList(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42
+                ,43,44,45,46,47,48,49);
+//                List<Integer> l = Arrays.asList(3,4,5,11,13,15,21,22,26,28,30,31,32,33,35,36,38,41,42);
                 l.forEach(i -> {
                         if(!finalCsvSchemaColumns.get(i).equals(fields[i])){
                             resmap.put(finalCsvSchemaColumns.get(i),fields[i]);
@@ -78,36 +79,90 @@ public class SparkHelper {
                     double sceneCenterLatitude = Double.parseDouble(resmap.get("sceneCenterLatitude"));
                     String sceneStartTime = resmap.get("sceneStartTime");
                     String sceneStopTime = resmap.get("sceneStopTime");
+                    String THERMAL_LINES = resmap.get("THERMAL_LINES");
+                    String sunAzimuth = resmap.get("sunAzimuth");
+                    String REFLECTIVE_SAMPLES = resmap.get("REFLECTIVE_SAMPLES");
+                    String MAP_PROJECTION_L1 = resmap.get("MAP_PROJECTION_L1");
+                    String cartURL = resmap.get("cartURL");
+                    String sunElevation = resmap.get("sunElevation");
+                    String path = resmap.get("path");
+                    String GROUND_CONTROL_POINTS_MODEL = resmap.get("GROUND_CONTROL_POINTS_MODEL");
+                    String row = resmap.get("row");
+                    String imageQuality1 = resmap.get("imageQuality1");
+                    String REFLECTIVE_LINES = resmap.get("REFLECTIVE_LINES");
+                    String ELLIPSOID = resmap.get("ELLIPSOID");
+                    String GEOMETRIC_RMSE_MODEL = resmap.get("GEOMETRIC_RMSE_MODEL");
+                    String browseAvailable = resmap.get("browseAvailable");
+                    String dayOrNight = resmap.get("dayOrNight");
+                    String CPF_NAME = resmap.get("CPF_NAME");
+                    String DATA_TYPE_L1 = resmap.get("DATA_TYPE_L1");
+                    String THERMAL_SAMPLES = resmap.get("THERMAL_SAMPLES");
+                    String dateUpdated = resmap.get("dateUpdated");
+                    String sensor = resmap.get("sensor");
+                    String GROUND_CONTROL_POINTS_VERSION = resmap.get("GROUND_CONTROL_POINTS_VERSION");
+                    String acquisitionDate = resmap.get("acquisitionDate");
+                    String PROCESSING_SOFTWARE_VERSION = resmap.get("PROCESSING_SOFTWARE_VERSION");
+                    String COLLECTION_CATEGORY = resmap.get("COLLECTION_CATEGORY");
+                    String CLOUD_COVER_LAND = resmap.get("CLOUD_COVER_LAND");
+                    String GEOMETRIC_RMSE_MODEL_X = resmap.get("GEOMETRIC_RMSE_MODEL_X");
+                    String GEOMETRIC_RMSE_MODEL_Y = resmap.get("GEOMETRIC_RMSE_MODEL_Y");
+                    String UTM_ZONE = resmap.get("UTM_ZONE");
+                    String DATE_L1_GENERATED = resmap.get("DATE_L1_GENERATED");
+                    String GRID_CELL_SIZE_THERMAL = resmap.get("GRID_CELL_SIZE_THERMAL");
+                    String DATUM = resmap.get("DATUM");
+                    String COLLECTION_NUMBER = resmap.get("COLLECTION_NUMBER");
+                    String sceneID = resmap.get("sceneID");
+                    String receivingStation = resmap.get("receivingStation");
 
-                    Map<String, String> p1 = new HashMap<String,String>();
-                    p1.put("MAP_PROJECTION_L1", resmap.get("MAP_PROJECTION_L1"));
-                    Map<String, String> p2 = new HashMap<String,String>();
-                    p2.put("imageQuality1", resmap.get("imageQuality1"));
-                    Map<String, String> p3 = new HashMap<String,String>();
-                    p3.put("ELLIPSOID",resmap.get("ELLIPSOID"));
-                    Map<String,Object> other_properties = new HashMap<String,Object>();
-                    other_properties.put("p1",p1);
-                    other_properties.put("p2",p2);
-                    other_properties.put("p3",p3);
 
                     String wkt = "POLYGON ((" + lowerLeftCornerLongitude + " " + lowerLeftCornerLatitude + "," + lowerRightCornerLongitude + " " + lowerRightCornerLatitude + "," + upperRightCornerLongitude + " " + upperRightCornerLatitude + "," + upperLeftCornerLongitude + " " + upperLeftCornerLatitude + "," + lowerLeftCornerLongitude + " " + lowerLeftCornerLatitude + "))";
                     String centerPointWKT = "POINT(" + sceneCenterLongitude + " " + sceneCenterLatitude + ")";
 
                     result.put("imageid", resmap.get("LANDSAT_PRODUCT_ID"));
-//                    result.put("location", wkt);
                     result.put("boundary", wkt);
                     result.put("center-point", centerPointWKT);
                     result.put("satellite", "Landsat");
-                    result.put("sensor", "TM");
+                    result.put("sensor", sensor);
                     result.put("cloud", resmap.get("cloudCover"));
-                    result.put("level", "1");
+                    result.put("level", DATA_TYPE_L1);
                     result.put("resolution", resmap.get("GRID_CELL_SIZE_REFLECTIVE"));
                     result.put("quick-look", resmap.get("browseURL"));
-
                     result.put("start-time",paseDateTomillise(sceneStartTime));
                     result.put("end-time", paseDateTomillise(sceneStopTime));
-                    result.put("owner", "NASA");
-                    result.put("other-properties", other_properties);
+
+                    result.put("row", row);
+                    result.put("sunAzimuth", sunAzimuth);
+                    result.put("REFLECTIVE_SAMPLES", REFLECTIVE_SAMPLES);
+                    result.put("MAP_PROJECTION_L1", MAP_PROJECTION_L1);
+                    result.put("cartURL", cartURL);
+                    result.put("sunElevation", sunElevation);
+                    result.put("path", path);
+                    result.put("GROUND_CONTROL_POINTS_MODEL", GROUND_CONTROL_POINTS_MODEL);
+                    result.put("THERMAL_LINES", THERMAL_LINES);
+                    result.put("imageQuality1", imageQuality1);
+                    result.put("REFLECTIVE_LINES", REFLECTIVE_LINES);
+                    result.put("ELLIPSOID", ELLIPSOID);
+                    result.put("GEOMETRIC_RMSE_MODEL", GEOMETRIC_RMSE_MODEL);
+                    result.put("browseAvailable", browseAvailable);
+                    result.put("dayOrNight", dayOrNight);
+                    result.put("CPF_NAME", CPF_NAME);
+                    result.put("THERMAL_SAMPLES", THERMAL_SAMPLES);
+                    result.put("dateUpdated", dateUpdated);
+                    result.put("GROUND_CONTROL_POINTS_VERSION", GROUND_CONTROL_POINTS_VERSION);
+                    result.put("acquisitionDate", acquisitionDate);
+                    result.put("PROCESSING_SOFTWARE_VERSION", PROCESSING_SOFTWARE_VERSION);
+                    result.put("COLLECTION_CATEGORY", COLLECTION_CATEGORY);
+                    result.put("CLOUD_COVER_LAND", CLOUD_COVER_LAND);
+                    result.put("GEOMETRIC_RMSE_MODEL_X", GEOMETRIC_RMSE_MODEL_X);
+                    result.put("GEOMETRIC_RMSE_MODEL_Y", GEOMETRIC_RMSE_MODEL_Y);
+                    result.put("UTM_ZONE", UTM_ZONE);
+                    result.put("DATE_L1_GENERATED", DATE_L1_GENERATED);
+                    result.put("GRID_CELL_SIZE_THERMAL", GRID_CELL_SIZE_THERMAL);
+                    result.put("DATUM", DATUM);
+                    result.put("COLLECTION_NUMBER", COLLECTION_NUMBER);
+                    result.put("sceneID", sceneID);
+                    result.put("receivingStation", receivingStation);
+
                 }
                 return result;
             }
@@ -118,7 +173,7 @@ public class SparkHelper {
             }
         });
         //写入到索引
-        EsSpark.saveToEs(rdd.rdd(), "images/_doc");
+        EsSpark.saveToEs(rdd.rdd(), "image_landsat/_doc");
     }
     /**
    *  把"yyyy:day:HH:mm:ss"格式日期转换成毫秒

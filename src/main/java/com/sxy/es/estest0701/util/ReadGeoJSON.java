@@ -24,29 +24,31 @@ public class ReadGeoJSON {
     SparkConf conf = new SparkConf();
     conf.setMaster("local");
     conf.setAppName("CSVToES");
-    conf.set("es.nodes","192.168.10.135");
+    conf.set("cluster.name", "docker-cluster");
+    conf.set("es.nodes","116.62.149.8");
+//    conf.set("es.nodes","116.62.149.8");
     conf.set("es.port","9200");
     SparkContext sc = new SparkContext(conf);
 
-    RDD<String> inputRDD = TextFile.withCharset(sc,"E:\\xm\\20200708重研\\es20200720\\地名地址库\\GADM\\china\\china0.geojsonl.json","UTF-8");
+    RDD<String> inputRDD = TextFile.withCharset(sc,"E:\\xm\\20200708重研\\6es20200720\\地名地址库\\GADM\\china\\china1.geojsonl.json","UTF-8");
     JavaRDD rdd = inputRDD.toJavaRDD().map(new Function<String, Map<String,Object>>(){
         public Map<String,Object> call(String s) throws Exception {
           HashMap<String,Object> result =new HashMap<String,Object>();
           JSONObject jo = JSON.parseObject(s); // 创建一个包含原始json串的json对象
           JSONObject properties = jo.getJSONObject("properties");
-//          String name_0 = properties.getString("NAME_2");
-//          String name_1 = properties.getString("VARNAME_2");
-//          String name_2 = properties.getString("NL_NAME_2");
-          String country = properties.getString("NAME_0");
-          String province = properties.getString("NAME_1");
-          String city = properties.getString("NAME_2");
+          String name_0 = properties.getString("NAME_1");
+          String name_1 = properties.getString("VARNAME_1");
+          String name_2 = properties.getString("NL_NAME_1");
+//          String country = properties.getString("NAME_0");
+//          String province = properties.getString("NAME_1");
+//          String city = properties.getString("NAME_2");
           JSONObject geometry =  jo.getJSONObject("geometry");
 //          result.put("name1",name_0);
-          result.put("name1",country);
+          result.put("name1",name_0);
 //          result.put("name2",name_1);
-          result.put("name2",province);
+          result.put("name2",name_1);
 //          result.put("name3",name_2);
-          result.put("name3",city);
+          result.put("name3",name_2);
           result.put("location",geometry);
 //          result.put("country",country);
 //          result.put("province",province);
